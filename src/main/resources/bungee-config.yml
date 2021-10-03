@@ -1,0 +1,10 @@
+
+
+database:
+  mysql:
+    username: root
+    password: "password"
+    address: localhost:3306
+    database: "bungeeplaytime"
+
+
