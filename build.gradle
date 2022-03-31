@@ -9,10 +9,27 @@ repositories {
         name = 'sonatype'
         url = 'https://oss.sonatype.org/content/groups/public/'
     }
+
+    maven {
+        name = 'spigotmc-repo'
+        url = 'https://hub.spigotmc.org/nexus/content/repositories/snapshots/'
+    }
+
+    maven { url "https://repo.dmulloy2.net/repository/public/" }
+
+    mavenCentral()
+    maven {
+        url "https://nexus.codecrafter47.de/content/repositories/public/"
+    }
+
 }
 
 dependencies {
     compileOnly 'net.md-5:bungeecord-api:1.16-R0.4'
+    compileOnly 'org.spigotmc:spigot-api:1.17.1-R0.1-SNAPSHOT'
+
+    implementation files("libs/AFKPlus.jar")
+    implementation "codecrafter47.bungeetablistplus:bungeetablistplus-api-bungee:2.7.0"
 }
 
 def targetJavaVersion = 8

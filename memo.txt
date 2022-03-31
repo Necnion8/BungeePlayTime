@@ -1,0 +1,47 @@
+
+afk-times:
+  - period: 3  # AFK mark 3min~
+    notify: [admin]
+
+  - period: 10
+    notify: [all]
+
+  - period: 120
+    notify: [admin]
+    send-server: lobby
+
+  - period: 240
+    notify: [admin]
+    kick: true
+
+excludes:
+  exclude-top: true
+  servers: [lobby, hub]
+
+
+/ot top
+]--------[ S28game Online Top ]---------[
+ 1. tngy_xHuwaly8  -  9999 days 20 hours
+ 2. Necnion8       -  8888 days 8 hours
+ 3. Nuxezi         -  7777 days 7 hours
+ 4. Thinking       -  1 days 23 hours
+ 5. ThinkingV2     -  1 days 22 hours 56 seconds
+ 6. SuperHackerGG  -  1 days 1 seconds
+]---------------------------------------[
+
+/ot topall (All Servers top)
+/ot topafk (AFK Time Top)
+
+/ot
+/ot (player)
+]---------------------------------------[
+  Play Time:  36 days 8 hours (1234 days 20 hours on all servers)
+]---------------------------------------[
+
+/ot statics (player)
+]---------------------------------------[
+  Play Time:  36 days 8 hours (1234 days 20 hours on all servers)
+  First Join: 2019 / 12 / 30  21:52
+]---------------------------------------[
+
+
