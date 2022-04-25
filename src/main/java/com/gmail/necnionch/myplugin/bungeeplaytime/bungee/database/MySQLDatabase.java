@@ -12,17 +12,23 @@ public class MySQLDatabase implements Database {
     private final String username;
     private final String password;
     private final String address;
+    private final Map<String, String> dbOptions;
     private final Logger log;
     private Connection connection;
     private final Map<UUID, String> cachedPlayerNames = Maps.newConcurrentMap();
 
 
-    public MySQLDatabase(String address, String database, String username, String password, Logger logger) {
+    public MySQLDatabase(String address, String database, String username, String password, Map<String, String> dbOptions, Logger logger) {
         this.address = address;
         this.database = database;
         this.username = username;
         this.password = password;
         this.log = logger;
+        this.dbOptions = dbOptions;
+    }
+
+    public MySQLDatabase(String address, String database, String username, String password, Logger logger) {
+        this(address, database, username, password, Collections.emptyMap(), logger);
     }
 
 
@@ -32,7 +38,11 @@ public class MySQLDatabase implements Database {
             throw new IllegalStateException("already opened");
 
         String url = "jdbc:mysql://" + address + "/" + database;
-        connection = DriverManager.getConnection(url, username, password);
+        Properties properties = new Properties();
+        properties.setProperty("user", username);
+        properties.setProperty("password", password);
+        dbOptions.forEach(properties::setProperty);
+        connection = DriverManager.getConnection(url, properties);
         return true;
     }
 
@@ -103,8 +113,6 @@ public class MySQLDatabase implements Database {
         }
 
         if (!playerName.equals(cachedPlayerNames.getOrDefault(playerId, null))) {
-//            log.warning("no cache, no found -> put name");
-            // TODO: fetchできてない？ duplicate entry が出る
             putPlayerName(playerId, playerName);
         }
 

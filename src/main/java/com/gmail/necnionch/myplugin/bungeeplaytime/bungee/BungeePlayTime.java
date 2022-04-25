@@ -1,7 +1,6 @@
 package com.gmail.necnionch.myplugin.bungeeplaytime.bungee;
 
 import codecrafter47.bungeetablistplus.api.bungee.BungeeTabListPlusAPI;
-import com.gmail.necnionch.myplugin.bungeeplaytime.MainConfig;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.commands.*;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.*;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.errors.DatabaseError;
@@ -49,6 +48,7 @@ public final class BungeePlayTime extends Plugin {
                 mainConfig.getDatabase(),
                 mainConfig.getUserName(),
                 mainConfig.getPassword(),
+                mainConfig.getOptions(),
                 getLogger()
         );
         try {
@@ -76,6 +76,12 @@ public final class BungeePlayTime extends Plugin {
 
     @Override
     public void onDisable() {
+        try {
+            BTLPAFKTagVariable.unregisterFromBTLPVariable();
+        } catch (Throwable e) {
+            getLogger().warning("Failed to unregister BTLP Custom Variable: " + e.getMessage());
+        }
+
         getProxy().unregisterChannel(BPTUtil.MESSAGE_CHANNEL_AFK_STATE);
 
         if (!database.isClosed()) {

@@ -5,3 +5,5 @@ database:
     password: "password"
     address: localhost:3306
     database: "bungeeplaytime"
+    options:
+      autoReconnect: true
