@@ -4,3 +4,5 @@ main: com.gmail.necnionch.myplugin.bungeeplaytime.bukkit.BungeePlayTime
 api-version: 1.13
 authors: [ Necnion8 ]
 depend: [ AFKPlus ]
+commands:
+  testtestsend: {}

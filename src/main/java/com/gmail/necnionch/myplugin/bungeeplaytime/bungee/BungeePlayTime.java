@@ -9,9 +9,16 @@ import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.listeners.PlayerListen
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.listeners.PluginMessageListener;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.task.Result;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.BPTUtil;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.Test;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.dev.example.ItemRequest;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.dev.example.PingRequest;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.dev.example.PingResponse;
 import com.google.common.collect.Maps;
 import net.md_5.bungee.api.ChatColor;
+import net.md_5.bungee.api.CommandSender;
+import net.md_5.bungee.api.config.ServerInfo;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
+import net.md_5.bungee.api.plugin.Command;
 import net.md_5.bungee.api.plugin.Plugin;
 
 import java.sql.SQLException;
@@ -25,6 +32,7 @@ public final class BungeePlayTime extends Plugin {
     private final MainConfig mainConfig = new MainConfig(this);
     private Database database;
     private final Map<UUID, PlayerTime> players = Maps.newConcurrentMap();
+    private Test.BungeeDataIO dataSender;
 
 
     @Override
@@ -72,6 +80,27 @@ public final class BungeePlayTime extends Plugin {
         getProxy().getPluginManager().registerCommand(this, new OnlineTimeTopCommand(this));
         getProxy().getPluginManager().registerCommand(this, new AFKPlayersCommand(this));
 
+
+        ServerInfo server = getProxy().getServerInfo("paper");
+        dataSender = new Test.BungeeDataIO(this, server, "bptime:data");
+        dataSender.registerHandler("ping", new PingRequest.PingRequestHandler());
+        dataSender.registerHandler("ping", new PingResponse.PingResponseHandler());
+        dataSender.registerHandler("item", new ItemRequest.Handler());
+        getProxy().registerChannel("bptime:data");
+        getProxy().getPluginManager().registerListener(this, dataSender);
+
+        getProxy().getPluginManager().registerCommand(this, new Command("testsend") {
+            @Override
+            public void execute(CommandSender sender, String[] args) {
+                dataSender.send(new PingRequest((args.length >= 1) ? String.join(" ", args) : "empty")).whenComplete((ret, err) -> {
+                    if (err != null) {
+                        sender.sendMessage(ChatColor.RED + "err: " + err.getClass().getSimpleName());
+                    } else {
+                        sender.sendMessage("res: " + ret.getResponseMessage());
+                    }
+                });
+            }
+        });
     }
 
     @Override
