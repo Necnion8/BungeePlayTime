@@ -7,14 +7,14 @@ public class PlayerTime {
     private final ProxiedPlayer player;
     private final long startTime;
     private final String server;
-    private final AFKState afk;
+    private final AFKState afkState;
 
 
     public PlayerTime(ProxiedPlayer player, long startTime, String server, AFKState state) {
         this.player = player;
         this.startTime = startTime;
         this.server = server;
-        this.afk = state;
+        this.afkState = state;
     }
 
 
@@ -31,11 +31,11 @@ public class PlayerTime {
     }
 
     public boolean isAFK() {
-        return !afk.isPlayed();
+        return !afkState.isPlayed();
     }
 
     public AFKState getAFKState() {
-        return afk;
+        return afkState;
     }
 
 }

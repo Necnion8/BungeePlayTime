@@ -1,6 +1,7 @@
 
 players:
   played-in-unknown-state: false
+  afk-minutes: 5  # todo
 
 database:
   mysql:

@@ -1,4 +1,4 @@
-package com.gmail.necnionch.myplugin.bungeeplaytime.bungee;
+package com.gmail.necnionch.myplugin.bungeeplaytime.bukkit;
 
 
 public enum AFKState {
@@ -41,15 +41,17 @@ public enum AFKState {
     }
 
     public boolean isPlayed() {
-        if (UNKNOWN.equals(this))
-            return isPlayedInUnknownState();
-        return !TRUE.equals(this);
+        if (TRUE.equals(this))
+            return true;
+        if (FALSE.equals(this))
+            return false;
+        return isPlayedInUnknownState();
     }
 
     public static boolean isPlayedInUnknownState() {
         BungeePlayTime instance = BungeePlayTime.getInstance();
         if (instance != null) {
-            return instance.getMainConfig().getPlayers().isPlayedInUnknownState();
+            return instance.isPlayedInUnknownState();
         }
         return false;
     }

@@ -1,8 +1,8 @@
-package com.gmail.necnionch.myplugin.bungeeplaytime.common.dev.packet;
+package com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet;
 
 import com.google.common.io.ByteArrayDataOutput;
 
-public abstract class Response {
+public abstract class Request<Res extends Response> {
 
     public abstract String getDataKey();
 

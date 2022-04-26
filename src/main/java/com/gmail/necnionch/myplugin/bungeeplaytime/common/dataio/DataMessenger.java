@@ -1,12 +1,12 @@
-package com.gmail.necnionch.myplugin.bungeeplaytime.common.dev;
+package com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio;
 
-import com.gmail.necnionch.myplugin.bungeeplaytime.common.dev.errors.RemoteHandleError;
-import com.gmail.necnionch.myplugin.bungeeplaytime.common.dev.errors.RemoteNotImplemented;
-import com.gmail.necnionch.myplugin.bungeeplaytime.common.dev.errors.SenderError;
-import com.gmail.necnionch.myplugin.bungeeplaytime.common.dev.packet.Request;
-import com.gmail.necnionch.myplugin.bungeeplaytime.common.dev.packet.RequestHandler;
-import com.gmail.necnionch.myplugin.bungeeplaytime.common.dev.packet.Response;
-import com.gmail.necnionch.myplugin.bungeeplaytime.common.dev.packet.ResponseHandler;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.errors.RemoteHandleError;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.errors.RemoteNotImplemented;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.errors.SenderError;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.Request;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.RequestHandler;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.Response;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.ResponseHandler;
 import com.google.common.collect.Maps;
 import com.google.common.io.ByteArrayDataInput;
 import com.google.common.io.ByteArrayDataOutput;
@@ -21,7 +21,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 
-public abstract class DataIO {
+public abstract class DataMessenger {
     private final Map<String, RequestHandler<? extends Request<? extends Response>, ? extends Response>> requestHandlers = Maps.newHashMap();
     private final Map<String, ResponseHandler<? extends Response>> responseHandlers = Maps.newHashMap();
     private final Executor syncExecutor;
@@ -31,23 +31,25 @@ public abstract class DataIO {
     private final Logger logger;
 
 
-    public DataIO(Logger logger, Executor syncExecutor, Executor asyncExecutor) {
+    public DataMessenger(Logger logger, Executor syncExecutor, Executor asyncExecutor) {
         this.logger = logger;
         this.syncExecutor = syncExecutor;
         this.asyncExecutor = asyncExecutor;
     }
 
 
-    public <R extends Request<Res>, Res extends Response> void registerHandler(String targetDataKey, RequestHandler<R, Res> handler) {
-        if (requestHandlers.containsKey(targetDataKey))
-            throw new IllegalArgumentException("already registered data-key: " + targetDataKey);
-        requestHandlers.put(targetDataKey, handler);
+    public <R extends Request<Res>, Res extends Response> void registerHandler(RequestHandler<R, Res> handler) {
+        String dataKey = handler.getDataKey();
+        if (requestHandlers.containsKey(dataKey))
+            throw new IllegalArgumentException("already registered data-key: " + dataKey);
+        requestHandlers.put(dataKey, handler);
     }
 
-    public <R extends Response> void registerHandler(String targetDataKey, ResponseHandler<R> handler) {
-        if (responseHandlers.containsKey(targetDataKey))
-            throw new IllegalArgumentException("already registered data-key: " + targetDataKey);
-        responseHandlers.put(targetDataKey, handler);
+    public <R extends Response> void registerHandler(ResponseHandler<R> handler) {
+        String dataKey = handler.getDataKey();
+        if (responseHandlers.containsKey(dataKey))
+            throw new IllegalArgumentException("already registered data-key: " + dataKey);
+        responseHandlers.put(dataKey, handler);
     }
 
 
@@ -69,7 +71,7 @@ public abstract class DataIO {
             writeOut(output.toByteArray());
         });
 
-        return new Requested<>(future, syncExecutor);
+        return new Requested<>(this, reqId, future, syncExecutor);
     }
 
 
@@ -105,6 +107,8 @@ public abstract class DataIO {
         }
 
     }
+
+    protected <Res extends Response> void onRequest(Request<Res> processedResponse) {}
 
 
     private <Res extends Response> void onResponse(int reqId, String dataKey, ByteArrayDataInput input) {
@@ -172,6 +176,11 @@ public abstract class DataIO {
 
         try {
             R request = handler.handleRequest(input);
+            try {
+                onRequest(request);
+            } catch (Throwable e) {
+                logger.log(Level.WARNING, "Exception in onRequest() handling (dataKey: " + dataKey + ") (ignored it)", e);
+            }
             Res response = handler.processRequest(request);
 
             ByteArrayDataOutput output = createPacket(SendType.RESPONSE, reqId, dataKey);
@@ -201,13 +210,17 @@ public abstract class DataIO {
     public static final class Requested<Res> {
         private final CompletableFuture<Res> future;
         private final Executor executor;
+        private final DataMessenger messenger;
+        private final int requestId;
 
-        public Requested(CompletableFuture<Res> future, Executor executor) {
+        public Requested(DataMessenger messenger, int requestId, CompletableFuture<Res> future, Executor executor) {
+            this.messenger = messenger;
+            this.requestId = requestId;
             this.future = future;
             this.executor = executor;
         }
 
-        public void whenComplete(BiConsumer<Res, Throwable> action) {
+        public Requested<Res> whenComplete(BiConsumer<Res, Throwable> action) {
             future.whenComplete((ret, err) -> {
                 try {
                     executor.execute(() -> action.accept(ret, err));
@@ -215,6 +228,11 @@ public abstract class DataIO {
                     e.printStackTrace();
                 }
             });
+            return this;
+        }
+
+        public void cancel() {
+            messenger.waitTasks.remove(requestId);
         }
 
     }

@@ -7,19 +7,20 @@ import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.MySQLDatabase
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.PlayerName;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.PlayerTimeEntries;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.PlayerTimeResult;
+import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.dataio.BungeeDataMessenger;
+import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.dataio.ServerMessenger;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.errors.DatabaseError;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.hooks.BTLPAFKTagVariable;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.listeners.PlayerListener;
-import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.listeners.PluginMessageListener;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.BPTUtil;
-import com.gmail.necnionch.myplugin.bungeeplaytime.common.Test;
-import com.gmail.necnionch.myplugin.bungeeplaytime.common.dev.example.ItemRequest;
-import com.gmail.necnionch.myplugin.bungeeplaytime.common.dev.example.PingRequest;
-import com.gmail.necnionch.myplugin.bungeeplaytime.common.dev.example.PingResponse;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.Request;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.Response;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packets.AFKChange;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packets.PingRequest;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packets.SettingChange;
 import com.google.common.collect.Maps;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.CommandSender;
-import net.md_5.bungee.api.config.ServerInfo;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
 import net.md_5.bungee.api.plugin.Command;
 import net.md_5.bungee.api.plugin.Plugin;
@@ -28,16 +29,17 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 //TODO: Last Join date command
 
 
-public final class BungeePlayTime extends Plugin implements PlayTimeAPI {
+public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeDataMessenger.RequestListener {
     private static BungeePlayTime instance;
     private final MainConfig mainConfig = new MainConfig(this);
     private Database database;
     private final Map<UUID, PlayerTime> players = Maps.newConcurrentMap();
-    private Test.BungeeDataIO dataSender;
+    private BungeeDataMessenger messenger;
 
 
     @Override
@@ -55,24 +57,25 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI {
 
     @Override
     public void onEnable() {
+        // config
         mainConfig.load();
 
-        database = new MySQLDatabase(mainConfig.getMySQL(), getLogger());
-        try {
-            if (database.openConnection())
-                database.init();
-        } catch (SQLException e) {
-            getLogger().severe("Failed to connect to database:");
-            getLogger().severe("Error: " + e.getMessage());
-        }
+        // database
+        connectDatabase();
 
-        getProxy().registerChannel(BPTUtil.MESSAGE_CHANNEL_AFK_STATE);
-        getProxy().getPluginManager().registerListener(this, new PlayerListener(this));
-        getProxy().getPluginManager().registerListener(this, new PluginMessageListener(this));
+        // init
+        messenger = BungeeDataMessenger.register(this, BPTUtil.MESSAGE_CHANNEL_DATA, this);
+        messenger.updateServerMessengers();
 
         getProxy().getPlayers().forEach(p ->  // todo: replace waitFor check
                 insertPlayer(p, System.currentTimeMillis(), p.getServer().getInfo().getName(), AFKState.UNKNOWN));
 
+        // events
+//        getProxy().registerChannel(BPTUtil.MESSAGE_CHANNEL_AFK_STATE);
+        getProxy().getPluginManager().registerListener(this, new PlayerListener(this));
+
+        // commands
+        new MainCommand(this).registerCommand();
         PlayTimeCommand playTimeCommand = new PlayTimeCommand(this);
         getProxy().getPluginManager().registerCommand(this, playTimeCommand);
         getProxy().getPluginManager().registerCommand(this, new PlayTimeTopCommand(playTimeCommand));
@@ -81,39 +84,32 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI {
         getProxy().getPluginManager().registerCommand(this, new OnlineTimeTopCommand(onlineTimeCommand));
         getProxy().getPluginManager().registerCommand(this, new AFKPlayersCommand(this));
 
-
-        ServerInfo server = getProxy().getServerInfo("paper");
-        dataSender = new Test.BungeeDataIO(this, server, "bptime:data");
-        dataSender.registerHandler("ping", new PingRequest.PingRequestHandler());
-        dataSender.registerHandler("ping", new PingResponse.PingResponseHandler());
-        dataSender.registerHandler("item", new ItemRequest.Handler());
-        getProxy().registerChannel("bptime:data");
-        getProxy().getPluginManager().registerListener(this, dataSender);
-
-        getProxy().getPluginManager().registerCommand(this, new Command("testsend") {
+        // todo: debug
+        getProxy().getPluginManager().registerCommand(this, new Command("testactives") {
             @Override
             public void execute(CommandSender sender, String[] args) {
-                dataSender.send(new PingRequest((args.length >= 1) ? String.join(" ", args) : "empty")).whenComplete((ret, err) -> {
-                    if (err != null) {
-                        sender.sendMessage(ChatColor.RED + "err: " + err.getClass().getSimpleName());
-                    } else {
-                        sender.sendMessage("res: " + ret.getResponseMessage());
-                    }
-                });
+                String list = messenger.actives().stream().map(msg -> msg.getServerInfo().getName()).collect(Collectors.joining(", "));
+                sender.sendMessage("actives: " + list);
             }
         });
     }
 
     @Override
     public void onDisable() {
+        // unload
+        messenger.unregister();
+        messenger = null;
+
+        // hooks
         try {
             BTLPAFKTagVariable.unregisterFromBTLPVariable();
         } catch (Throwable e) {
             getLogger().warning("Failed to unregister BTLP Custom Variable: " + e.getMessage());
         }
 
-        getProxy().unregisterChannel(BPTUtil.MESSAGE_CHANNEL_AFK_STATE);
+//        getProxy().unregisterChannel(BPTUtil.MESSAGE_CHANNEL_AFK_STATE);
 
+        // database
         if (!database.isClosed()) {
             try {
                 database.close();
@@ -125,6 +121,10 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI {
 
     public MainConfig getMainConfig() {
         return mainConfig;
+    }
+
+    public BungeeDataMessenger getMessenger() {
+        return messenger;
     }
 
     public static BungeePlayTime getInstance() {
@@ -159,6 +159,7 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI {
             putPlayerTime(playerTime, time);
         }
         players.put(uniqueId, new PlayerTime(player, startTime, server, state));
+        getLogger().warning(player.getName() + " afk state: " + state);
 
     }
 
@@ -172,6 +173,61 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI {
 
     }
 
+    public boolean connectDatabase() {
+        if (database != null && !database.isClosed()) {
+            try {
+                database.close();
+            } catch (Exception ignored) {
+            }
+        }
+
+        database = new MySQLDatabase(mainConfig.getMySQL(), getLogger());
+        try {
+            if (database.openConnection())
+                database.init();
+            return true;
+        } catch (SQLException e) {
+            getLogger().severe("Failed to connect to database:");
+            getLogger().severe("Error: " + e.getMessage());
+        }
+        return false;
+    }
+
+    //
+
+    public <Res extends Response> void onRequest(ServerMessenger messenger, Request<Res> request) {
+        if (request instanceof PingRequest) {
+            this.messenger.addActive(messenger);
+
+        } else if (request instanceof AFKChange) {
+            AFKChange req = (AFKChange) request;
+            AFKState state = req.toBungeeAFKState();
+            ProxiedPlayer player = getProxy().getPlayer(req.getPlayerId());
+            if (player == null) {
+                getLogger().warning("Player '" + req.getPlayerId() + "' not found");
+                return;
+            }
+            getLogger().info("change afk " + player.getName() + " -> "+ state);
+            insertPlayer(player, System.currentTimeMillis(), messenger.getServerInfo().getName(), state);
+        }
+
+    }
+
+    @Override
+    public void onActiveMessenger(ServerMessenger messenger) {
+        sendSetting(messenger);
+    }
+
+    public void sendSettingAll() {
+        SettingChange setting = new SettingChange(mainConfig.getPlayers().isPlayedInUnknownState());
+        messenger.actives().forEach(msg -> msg.send(setting));
+    }
+
+    public void sendSetting(ServerMessenger messenger) {
+        messenger.send(new SettingChange(mainConfig.getPlayers().isPlayedInUnknownState()));
+    }
+
+    // apis
 
     @Override
     public Collection<PlayerTime> getPlayers() {

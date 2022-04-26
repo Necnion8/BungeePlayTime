@@ -18,7 +18,6 @@ public class PlayerListener implements Listener {
     }
 
 
-
     @EventHandler
     public void onSwitch(ServerConnectedEvent event) {
         ProxiedPlayer player = event.getPlayer();
@@ -26,13 +25,11 @@ public class PlayerListener implements Listener {
         ServerInfo toServer = event.getServer().getInfo();
 
 
-        if (fromServer == null) {  // proxy join
-            plugin.insertPlayer(player, System.currentTimeMillis(), toServer.getName(), AFKState.FALSE);
-
-        } else {  // switched
-            plugin.insertPlayer(player, System.currentTimeMillis(), toServer.getName(), AFKState.FALSE);
-
+        plugin.insertPlayer(player, System.currentTimeMillis(), toServer.getName(), AFKState.UNKNOWN);
+        if (fromServer != null && fromServer.getPlayers().size() <= 1) {
+            plugin.getMessenger().removeActive(fromServer);
         }
+        plugin.getMessenger().sendPing(toServer);
     }
 
     @EventHandler
@@ -40,6 +37,11 @@ public class PlayerListener implements Listener {
         ProxiedPlayer player = event.getPlayer();
         if (player.getServer() != null) {
             plugin.removePlayer(player.getUniqueId());
+
+            if (player.getServer().getInfo().getPlayers().size() <= 1) {
+                plugin.getMessenger().removeActive(player.getServer().getInfo());
+            }
+
         }
 
     }
