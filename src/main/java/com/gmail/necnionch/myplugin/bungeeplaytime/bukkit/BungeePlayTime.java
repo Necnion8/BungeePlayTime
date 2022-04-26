@@ -1,8 +1,8 @@
 package com.gmail.necnionch.myplugin.bungeeplaytime.bukkit;
 
-import com.gmail.necnionch.myplugin.bungeeplaytime.common.AFKState;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.BPTUtil;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.Test;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.data.AFKState;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dev.example.ItemRequest;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dev.example.ItemResponse;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dev.example.PingRequest;

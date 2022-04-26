@@ -1,4 +1,4 @@
-package com.gmail.necnionch.myplugin.bungeeplaytime.common;
+package com.gmail.necnionch.myplugin.bungeeplaytime.common.data;
 
 import com.google.common.io.ByteArrayDataInput;
 import com.google.common.io.ByteArrayDataOutput;

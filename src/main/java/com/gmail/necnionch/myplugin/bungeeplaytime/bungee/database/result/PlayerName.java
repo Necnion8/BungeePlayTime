@@ -1,13 +1,13 @@
-package com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database;
+package com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result;
 
 import java.util.UUID;
 
-public class PlayerId {
+public class PlayerName {
 
     private final UUID uniqueId;
     private final String name;
 
-    public PlayerId(UUID uniqueId, String name) {
+    public PlayerName(UUID uniqueId, String name) {
         this.uniqueId = uniqueId;
         this.name = name;
     }

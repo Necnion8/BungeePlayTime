@@ -1,5 +1,10 @@
 package com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database;
 
+import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.AFKState;
+import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.MainConfig;
+import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.PlayerName;
+import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.PlayerTimeEntries;
+import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.PlayerTimeResult;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -27,8 +32,8 @@ public class MySQLDatabase implements Database {
         this.dbOptions = dbOptions;
     }
 
-    public MySQLDatabase(String address, String database, String username, String password, Logger logger) {
-        this(address, database, username, password, Collections.emptyMap(), logger);
+    public MySQLDatabase(MainConfig.Database settings, Logger logger) {
+        this(settings.getAddress(), settings.getDatabase(), settings.getUserName(), settings.getPassword(), settings.getOptions(), logger);
     }
 
 
@@ -84,7 +89,7 @@ public class MySQLDatabase implements Database {
     }
 
     @Override
-    public void putTime(UUID playerId, String playerName, long startTime, long time, String server, boolean isAFK) throws SQLException {
+    public void putTime(UUID playerId, String playerName, long startTime, long time, String server, AFKState state) throws SQLException {
         if (isClosed() && !openConnection())
             throw new IllegalStateException("connection is closed");
 
@@ -94,7 +99,7 @@ public class MySQLDatabase implements Database {
             stmt.setLong(2, startTime);
             stmt.setLong(3, time);
             stmt.setNString(4, server);
-            stmt.setBoolean(5, isAFK);
+            stmt.setInt(5, state.getValue());
             stmt.executeUpdate();
         }
 
@@ -119,123 +124,161 @@ public class MySQLDatabase implements Database {
     }
 
     @Override
-    public Optional<LookupPlayerResult> lookupTime(UUID playerId) throws SQLException {
+    public Optional<PlayerTimeResult> lookupTime(UUID playerId, long afters) throws SQLException {
         if (isClosed() && !openConnection())
             throw new IllegalStateException("connection is closed");
 
-        String sql = "SELECT "
-                + "SUM(case when `isAFK` = 0 then `time` else 0 end) AS played, "
-                + "SUM(case when `isAFK` = 1 then `time` else 0 end) AS afk "
-                + "FROM `times` WHERE uuid = ?";
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.setString(1, playerId.toString());
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                long played = rs.getLong(1);
-                long afk = rs.getLong(2);
-                return Optional.of(new LookupPlayerResult(playerId, played, afk));
-            }
-        }
-        return Optional.empty();
-    }
-
-    @Override
-    public Optional<LookupPlayerResult> lookupTime(UUID playerId, long afters) throws SQLException {
-        if (isClosed() && !openConnection())
-            throw new IllegalStateException("connection is closed");
-
-        String sql = "SELECT "
-                + "SUM(case when `isAFK` = 0 then `time` else 0 end) AS played, "
-                + "SUM(case when `isAFK` = 1 then `time` else 0 end) AS afk "
-                + "FROM `times` WHERE uuid = ? AND startTime > ?";
+        String sql = ""
+                + "SELECT "
+                + "  SUM(case when `isAFK` = 0 then `time` else 0 end) AS `played`, "
+                + "  SUM(case when `isAFK` = 1 then `time` else 0 end) AS `afk`, "
+                + "  SUM(case when `isAFK` = -1 then `time` else 0 end) AS `unknown` "
+                + "FROM `times` "
+                + "WHERE `uuid` = ? AND `startTime` > ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, playerId.toString());
             stmt.setLong(2, afters);
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
-                long played = rs.getLong(1);
-                long afk = rs.getLong(2);
-                return Optional.of(new LookupPlayerResult(playerId, played, afk));
+                long played = rs.getLong("played");
+                long afk = rs.getLong("afk");
+                long unknown = rs.getLong("unknown");
+                return Optional.of(new PlayerTimeResult(playerId, played, afk, unknown));
             }
         }
         return Optional.empty();
     }
 
     @Override
-    public LookupTop lookupTimeTops(int lookupCount, boolean afks) throws SQLException {
+    public PlayerTimeEntries lookupTimeTops(int count, int offset, boolean totalTime, long afters) throws SQLException {
         if (isClosed() && !openConnection())
             throw new IllegalStateException("connection is closed");
 
-        if (lookupCount <= 0)
-            throw new IllegalArgumentException("lookupCount > 0");
+        if (count <= 0)
+            throw new IllegalArgumentException("count > 0");
+        if (offset < 0)
+            throw new IllegalArgumentException("offset >= 0");
 
+        String targetColumn = (totalTime) ? "total" : "played";
         String sql = ""
                 + "SELECT "
                 + "  `uuid`, "
-                + "  SUM(`time`) AS total, "
-                + "  SUM(case when `isAFK` = 0 then `time` else 0 end) AS played, "
-                + "  SUM(case when `isAFK` = 1 then `time` else 0 end) AS afk "
+                + "  SUM(`time`) AS `total`, "
+                + "  SUM(case when `isAFK` = 0 then `time` else 0 end) AS `played`, "
+                + "  SUM(case when `isAFK` = 1 then `time` else 0 end) AS `afk`, "
+                + "  SUM(case when `isAFK` = -1 then `time` else 0 end) AS `unknown` "
                 + "FROM `times` "
+                + "WHERE `startTime` > ? "
                 + "GROUP BY `uuid` "
-                + "ORDER BY `" + ((afks) ? "total" : "played") + "` DESC "
-                + "LIMIT ?";
+                + "ORDER BY `" + targetColumn + "` DESC "
+                + "LIMIT ? OFFSET ?";
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.setInt(1, lookupCount);
+            stmt.setLong(1, afters);
+            stmt.setInt(2, count);
+            stmt.setInt(3, offset);
+            List<PlayerTimeResult> entries = Lists.newArrayList();
 
-            ResultSet rs = stmt.executeQuery();
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    UUID uuid = UUID.fromString(rs.getString("uuid"));
+                    long played = rs.getLong("played");
+                    long afk = rs.getLong("afk");
+                    long unknown = rs.getLong("unknown");
 
-            List<LookupTop.Entry> entries = Lists.newArrayList();
-            while (rs.next()) {
-                UUID uuid = UUID.fromString(rs.getString("uuid"));
-                long played = rs.getLong("played");
-                long afk = rs.getLong("afk");
-
-                LookupTop.Entry entry = new LookupTop.Entry(uuid, played, afk);
-                entries.add(entry);
+                    PlayerTimeResult entry = new PlayerTimeResult(uuid, played, afk, unknown);
+                    entries.add(entry);
+                }
             }
 
-            return new LookupTop(Collections.unmodifiableList(entries));
+            return new PlayerTimeEntries(Collections.unmodifiableList(entries));
         }
     }
 
     @Override
-    public LookupTop lookupTimeTops(int lookupCount, boolean afks, long afters) throws SQLException {
+    public OptionalInt lookupTimeRanking(UUID playerId, boolean totalTime, long afters) throws SQLException {
         if (isClosed() && !openConnection())
             throw new IllegalStateException("connection is closed");
 
-        if (lookupCount <= 0)
-            throw new IllegalArgumentException("lookupCount > 0");
-
-        String targetColumn = (afks) ? "total" : "played";
-        String sql = "SELECT "
-                + "`uuid`, "
-                + "SUM(`time`) AS total, "
-                + "SUM(case when `isAFK` = 0 then `time` else 0 end) AS played, "
-                + "SUM(case when `isAFK` = 1 then `time` else 0 end) AS afk "
-                + "FROM `times` "
-                + "WHERE `" + targetColumn + "` > ? "
-                + "ORDER BY `" + targetColumn + "` "
-                + "LIMIT ?";
+        // exists check
+        boolean found;
+        String sql = "SELECT `uuid` FROM `times` WHERE `uuid` = ?";
+        if (!totalTime)
+            sql += " AND `isAFK` = 0";
+        sql += " LIMIT 1";
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.setLong(1, afters);
-            stmt.setInt(2, lookupCount);
-
-            ResultSet rs = stmt.executeQuery();
-
-            List<LookupTop.Entry> entries = Lists.newArrayList();
-            while (rs.next()) {
-                UUID uuid = UUID.fromString(rs.getString("uuid"));
-                long played = rs.getLong("played");
-                long afk = rs.getLong("afk");
-
-                LookupTop.Entry entry = new LookupTop.Entry(uuid, played, afk);
-                entries.add(entry);
+            stmt.setString(1, playerId.toString());
+            try (ResultSet rs = stmt.executeQuery()) {
+                found = rs.next();
             }
-
-            return new LookupTop(Collections.unmodifiableList(entries));
         }
+        if (!found)
+            return OptionalInt.empty();
+
+        // search ranking
+        String target = (totalTime) ? "SUM(`time`) AS `result`" : "SUM(case when `isAFK` = 0 then `time` else 0 end) AS `result`";
+        sql = ""
+                + "SELECT "
+                + "  COUNT(*) AS `rank`"
+                + "FROM ("
+                + "  SELECT"
+                + "    `uuid`,"
+                + "    " + target
+                + "  FROM"
+                + "    `times`"
+                + "  GROUP BY"
+                + "    `uuid`"
+                + "  HAVING"
+                + "    `result` > ("
+                + "      SELECT"
+                + "        " + target
+                + "      FROM"
+                + "        `times`"
+                + "      WHERE"
+                + "        `uuid` = ?"
+                + "    )"
+                + ") AS `totals`";
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, playerId.toString());
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next())
+                    return OptionalInt.of(rs.getInt("rank"));
+            }
+        }
+        return OptionalInt.empty();
+    }
+
+    @Override
+    public OptionalLong lookupFirstTime(UUID playerId) throws SQLException {
+        if (isClosed() && !openConnection())
+            throw new IllegalStateException("connection is closed");
+
+        String sql = "SELECT `startTime` FROM `times` WHERE `uuid` = ? ORDER BY `startTime` ASC LIMIT 1";
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, playerId.toString());
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next())
+                    return OptionalLong.of(rs.getLong("startTime"));
+            }
+        }
+        return OptionalLong.empty();
+    }
+
+    @Override
+    public OptionalLong lookupLastTime(UUID playerId) throws SQLException {
+        if (isClosed() && !openConnection())
+            throw new IllegalStateException("connection is closed");
+
+        String sql = "SELECT `startTime`, `time` FROM `times` WHERE `uuid` = ? ORDER BY `startTime` DESC LIMIT 1";
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, playerId.toString());
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next())
+                    return OptionalLong.of(rs.getLong("startTime") + rs.getLong("time"));
+            }
+        }
+        return OptionalLong.empty();
     }
 
 
@@ -255,7 +298,7 @@ public class MySQLDatabase implements Database {
         return Optional.empty();
     }
 
-    private Optional<PlayerId> fetchPlayerId(String playerName) throws SQLException {
+    private Optional<PlayerName> fetchPlayerId(String playerName) throws SQLException {
         if (isClosed())
             return Optional.empty();
 
@@ -276,7 +319,7 @@ public class MySQLDatabase implements Database {
                 }
 
                 cachedPlayerNames.put(uuid, name);
-                return Optional.of(new PlayerId(uuid, name));
+                return Optional.of(new PlayerName(uuid, name));
             }
         }
         return Optional.empty();
@@ -303,27 +346,27 @@ public class MySQLDatabase implements Database {
 
 
     @Override
-    public Optional<PlayerId> getPlayerName(UUID playerId) throws SQLException {
+    public Optional<PlayerName> getPlayerName(UUID playerId) throws SQLException {
         if (!cachedPlayerNames.containsKey(playerId)) {
             String name = fetchPlayerName(playerId).orElse(null);
             if (name != null) {
                 cachedPlayerNames.put(playerId, name);
-                return Optional.of(new PlayerId(playerId, name));
+                return Optional.of(new PlayerName(playerId, name));
             }
             return Optional.empty();
         }
 
-        return Optional.of(new PlayerId(playerId, cachedPlayerNames.get(playerId)));
+        return Optional.of(new PlayerName(playerId, cachedPlayerNames.get(playerId)));
     }
 
     @Override
-    public Optional<PlayerId> getPlayerId(String playerName) throws SQLException {
+    public Optional<PlayerName> getPlayerId(String playerName) throws SQLException {
         Optional<Map.Entry<UUID, String>> cached = cachedPlayerNames.entrySet()
                 .stream()
                 .filter(e -> e.getValue().equalsIgnoreCase(playerName))
                 .findFirst();
         if (cached.isPresent())
-            return Optional.of(new PlayerId(cached.get().getKey(), cached.get().getValue()));
+            return Optional.of(new PlayerName(cached.get().getKey(), cached.get().getValue()));
 
         return fetchPlayerId(playerName);
     }

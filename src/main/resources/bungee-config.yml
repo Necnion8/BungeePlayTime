@@ -1,4 +1,7 @@
 
+players:
+  played-in-unknown-state: false
+
 database:
   mysql:
     username: root

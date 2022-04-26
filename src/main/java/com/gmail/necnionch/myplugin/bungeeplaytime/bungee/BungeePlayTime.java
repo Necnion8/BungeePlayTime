@@ -2,7 +2,11 @@ package com.gmail.necnionch.myplugin.bungeeplaytime.bungee;
 
 import codecrafter47.bungeetablistplus.api.bungee.BungeeTabListPlusAPI;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.commands.*;
-import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.*;
+import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.Database;
+import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.MySQLDatabase;
+import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.PlayerName;
+import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.PlayerTimeEntries;
+import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.PlayerTimeResult;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.errors.DatabaseError;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.hooks.BTLPAFKTagVariable;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.listeners.PlayerListener;
@@ -24,11 +28,13 @@ import net.md_5.bungee.api.plugin.Plugin;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.logging.Level;
 
 //TODO: Last Join date command
 
 
-public final class BungeePlayTime extends Plugin {
+public final class BungeePlayTime extends Plugin implements PlayTimeAPI {
+    private static BungeePlayTime instance;
     private final MainConfig mainConfig = new MainConfig(this);
     private Database database;
     private final Map<UUID, PlayerTime> players = Maps.newConcurrentMap();
@@ -37,6 +43,7 @@ public final class BungeePlayTime extends Plugin {
 
     @Override
     public void onLoad() {
+        instance = this;
         if (getProxy().getPluginManager().getPlugin("BungeeTabListPlus") != null) {
             getLogger().info("Registering...");
             try {
@@ -51,33 +58,28 @@ public final class BungeePlayTime extends Plugin {
     public void onEnable() {
         mainConfig.load();
 
-        database = new MySQLDatabase(
-                mainConfig.getAddress(),
-                mainConfig.getDatabase(),
-                mainConfig.getUserName(),
-                mainConfig.getPassword(),
-                mainConfig.getOptions(),
-                getLogger()
-        );
+        database = new MySQLDatabase(mainConfig.getMySQL(), getLogger());
         try {
             if (database.openConnection())
                 database.init();
         } catch (SQLException e) {
-            e.printStackTrace();
-            return;
+            getLogger().severe("Failed to connect to database:");
+            getLogger().severe("Error: " + e.getMessage());
         }
 
         getProxy().registerChannel(BPTUtil.MESSAGE_CHANNEL_AFK_STATE);
         getProxy().getPluginManager().registerListener(this, new PlayerListener(this));
         getProxy().getPluginManager().registerListener(this, new PluginMessageListener(this));
 
-        getProxy().getPlayers().forEach(p ->
-                insertPlayer(p, System.currentTimeMillis(), p.getServer().getInfo().getName(), false));
+        getProxy().getPlayers().forEach(p ->  // todo: replace waitFor check
+                insertPlayer(p, System.currentTimeMillis(), p.getServer().getInfo().getName(), AFKState.UNKNOWN));
 
-        getProxy().getPluginManager().registerCommand(this, new PlayTimeCommand(this));
-        getProxy().getPluginManager().registerCommand(this, new PlayTimeTopCommand(this));
-        getProxy().getPluginManager().registerCommand(this, new OnlineTimeCommand(this));
-        getProxy().getPluginManager().registerCommand(this, new OnlineTimeTopCommand(this));
+        PlayTimeCommand playTimeCommand = new PlayTimeCommand(this);
+        getProxy().getPluginManager().registerCommand(this, playTimeCommand);
+        getProxy().getPluginManager().registerCommand(this, new PlayTimeTopCommand(playTimeCommand));
+        OnlineTimeCommand onlineTimeCommand = new OnlineTimeCommand(this);
+        getProxy().getPluginManager().registerCommand(this, onlineTimeCommand);
+        getProxy().getPluginManager().registerCommand(this, new OnlineTimeTopCommand(onlineTimeCommand));
         getProxy().getPluginManager().registerCommand(this, new AFKPlayersCommand(this));
 
 
@@ -122,6 +124,14 @@ public final class BungeePlayTime extends Plugin {
         }
     }
 
+    public MainConfig getMainConfig() {
+        return mainConfig;
+    }
+
+    public static BungeePlayTime getInstance() {
+        return instance;
+    }
+
 
     private CompletableFuture<Result<Boolean>> putPlayerTime(PlayerTime pTime, long time) {
         CompletableFuture<Result<Boolean>> f = new CompletableFuture<>();
@@ -130,10 +140,10 @@ public final class BungeePlayTime extends Plugin {
         getProxy().getScheduler().runAsync(this, () -> {
             try {
                 ProxiedPlayer p = pTime.getPlayer();
-                database.putTime(p.getUniqueId(), p.getName(), pTime.getStartTime(), time, pTime.getServer(), pTime.isAFK());
+                database.putTime(p.getUniqueId(), p.getName(), pTime.getStartTime(), time, pTime.getServer(), pTime.getAFKState());
                 r.setResult(true);
             } catch (SQLException e) {
-                e.printStackTrace();
+                getLogger().log(Level.SEVERE, "Exception in putPlayerTime", e);
                 r.setException(new DatabaseError(e));
             }
             f.complete(r);
@@ -141,7 +151,7 @@ public final class BungeePlayTime extends Plugin {
         return f;
     }
 
-    public void insertPlayer(ProxiedPlayer player, long startTime, String server, boolean afk) {
+    public void insertPlayer(ProxiedPlayer player, long startTime, String server, AFKState state) {
         UUID uniqueId = player.getUniqueId();
 
         if (players.containsKey(uniqueId)) {
@@ -150,7 +160,7 @@ public final class BungeePlayTime extends Plugin {
             long time = System.currentTimeMillis() - playerTime.getStartTime();
             putPlayerTime(playerTime, time);
         }
-        players.put(uniqueId, new PlayerTime(player, startTime, server, afk));
+        players.put(uniqueId, new PlayerTime(player, startTime, server, state));
 
     }
 
@@ -165,100 +175,137 @@ public final class BungeePlayTime extends Plugin {
     }
 
 
+    @Override
     public Collection<PlayerTime> getPlayers() {
         return Collections.unmodifiableCollection(players.values());
     }
 
+    @Override
     public Optional<PlayerTime> getPlayer(UUID playerId) {
         return Optional.ofNullable(players.get(playerId));
     }
 
 
-
-    public CompletableFuture<Optional<LookupPlayerResult>> lookupTime(UUID playerId) {
-        CompletableFuture<Optional<LookupPlayerResult>> f = new CompletableFuture<>();
+    @Override
+    public CompletableFuture<Optional<PlayerTimeResult>> lookupTime(UUID playerId, long afters) {
+        CompletableFuture<Optional<PlayerTimeResult>> f = new CompletableFuture<>();
 
         getProxy().getScheduler().runAsync(this, () -> {
             try {
-                Optional<LookupPlayerResult> result = database.lookupTime(playerId);
+                Optional<PlayerTimeResult> result = database.lookupTime(playerId, afters);
                 f.complete(result);
             } catch (SQLException e) {
-                e.printStackTrace();
+                getLogger().log(Level.SEVERE, "Exception in lookupTime", e);
                 f.completeExceptionally(new DatabaseError(e));
             }
         });
         return f;
     }
 
-//    public CompletableFuture<Optional<LookupPlayerResult>> lookupPlayTime(UUID playerId, long afters) {
-//        CompletableFuture<Optional<LookupPlayerResult>> f = new CompletableFuture<>();
-//
-//        getProxy().getScheduler().runAsync(this, () -> {
-//            try {
-//                Optional<LookupPlayerResult> result = database.lookupPlayTime(playerId, afters);
-//                f.complete(result);
-//            } catch (SQLException e) {
-//                e.printStackTrace();
-//                f.completeExceptionally(new DatabaseError(e));
-//            }
-//        });
-//        return f;
-//    }
+    @Override
+    public CompletableFuture<Optional<PlayerTimeResult>> lookupTime(UUID playerId) {
+        return lookupTime(playerId, 0);
+    }
 
-
-    public CompletableFuture<LookupTop> lookupTimeTops(int lookupCount, boolean afks) {
-        CompletableFuture<LookupTop> f = new CompletableFuture<>();
+    @Override
+    public CompletableFuture<PlayerTimeEntries> lookupTimeTops(int count, int offset, boolean totalTime, long afters) {
+        CompletableFuture<PlayerTimeEntries> f = new CompletableFuture<>();
 
         getProxy().getScheduler().runAsync(this, () -> {
             try {
-                f.complete(database.lookupTimeTops(lookupCount, afks));
+                f.complete(database.lookupTimeTops(count, offset, totalTime, afters));
 
             } catch (SQLException e) {
-                e.printStackTrace();
+                getLogger().log(Level.SEVERE, "Exception in lookupTimeTops", e);
                 f.completeExceptionally(new DatabaseError(e));
             }
         });
         return f;
     }
 
-//    public CompletableFuture<LookupTop> lookupTops(int lookupCount, boolean afks, long afters) {
-//        CompletableFuture<LookupTop> f = new CompletableFuture<>();
-//
-//        getProxy().getScheduler().runAsync(this, () -> {
-//            try {
-//                f.complete(database.lookupTops(lookupCount, afks, afters));
-//
-//            } catch (SQLException e) {
-//                e.printStackTrace();
-//                f.completeExceptionally(new DatabaseError(e));
-//            }
-//        });
-//        return f;
-//    }
+    @Override
+    public CompletableFuture<PlayerTimeEntries> lookupTimeTops(int count, int offset, boolean totalTime) {
+        return lookupTimeTops(count, offset, totalTime, 0);
+    }
+
+    @Override
+    public CompletableFuture<OptionalInt> lookupTimeRanking(UUID playerId, boolean totalTime, long afters) {
+        CompletableFuture<OptionalInt> f = new CompletableFuture<>();
+
+        getProxy().getScheduler().runAsync(this, () -> {
+            try {
+                OptionalInt ranking = database.lookupTimeRanking(playerId, totalTime, afters);
+                f.complete(ranking);
+            } catch (SQLException e) {
+                getLogger().log(Level.SEVERE, "Exception in lookupTimeRanking", e);
+                f.completeExceptionally(new DatabaseError(e));
+            }
+        });
+        return f;
+    }
+
+    @Override
+    public CompletableFuture<OptionalInt> lookupTimeRanking(UUID playerId, boolean totalTime) {
+        return lookupTimeRanking(playerId, totalTime, 0);
+    }
+
+    @Override
+    public CompletableFuture<OptionalLong> lookupFirstTime(UUID playerId) {
+        CompletableFuture<OptionalLong> f = new CompletableFuture<>();
+
+        getProxy().getScheduler().runAsync(this, () -> {
+            try {
+                OptionalLong firstTime = database.lookupFirstTime(playerId);
+                f.complete(firstTime);
+            } catch (SQLException e) {
+                getLogger().log(Level.SEVERE, "Exception in lookupFirstTime", e);
+                f.completeExceptionally(new DatabaseError(e));
+            }
+        });
+        return f;
+    }
+
+    @Override
+    public CompletableFuture<OptionalLong> lookupLastTime(UUID playerId) {
+        CompletableFuture<OptionalLong> f = new CompletableFuture<>();
+
+        getProxy().getScheduler().runAsync(this, () -> {
+            try {
+                OptionalLong lastTime = database.lookupLastTime(playerId);
+                f.complete(lastTime);
+            } catch (SQLException e) {
+                getLogger().log(Level.SEVERE, "Exception in lookupLastTime", e);
+                f.completeExceptionally(new DatabaseError(e));
+            }
+        });
+        return f;
+    }
 
 
-    public CompletableFuture<Optional<PlayerId>> fetchPlayerName(UUID playerId) {
-        CompletableFuture<Optional<PlayerId>> f = new CompletableFuture<>();
+    @Override
+    public CompletableFuture<Optional<PlayerName>> fetchPlayerName(UUID playerId) {
+        CompletableFuture<Optional<PlayerName>> f = new CompletableFuture<>();
 
         getProxy().getScheduler().runAsync(this, () -> {
             try {
                 f.complete(database.getPlayerName(playerId));
             } catch (SQLException e) {
-                e.printStackTrace();
+                getLogger().log(Level.SEVERE, "Exception fetchPlayerName lookupTimeRanking", e);
                 f.completeExceptionally(new DatabaseError(e));
             }
         });
         return f;
     }
 
-    public CompletableFuture<Optional<PlayerId>> fetchPlayerId(String playerName) {
-        CompletableFuture<Optional<PlayerId>> f = new CompletableFuture<>();
+    @Override
+    public CompletableFuture<Optional<PlayerName>> fetchPlayerId(String playerName) {
+        CompletableFuture<Optional<PlayerName>> f = new CompletableFuture<>();
 
         getProxy().getScheduler().runAsync(this, () -> {
             try {
                 f.complete(database.getPlayerId(playerName));
             } catch (SQLException e) {
-                e.printStackTrace();
+                getLogger().log(Level.SEVERE, "Exception in fetchPlayerId", e);
                 f.completeExceptionally(new DatabaseError(e));
             }
         });
@@ -267,7 +314,7 @@ public final class BungeePlayTime extends Plugin {
     }
 
 
-
+    @Override
     public String formatTimeText(long millis) {
         long offset = millis / 1000L;
         int hours = (int) offset / 3600;

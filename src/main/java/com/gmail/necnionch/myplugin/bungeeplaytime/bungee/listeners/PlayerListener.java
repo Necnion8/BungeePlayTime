@@ -1,5 +1,6 @@
 package com.gmail.necnionch.myplugin.bungeeplaytime.bungee.listeners;
 
+import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.AFKState;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.BungeePlayTime;
 import net.md_5.bungee.api.config.ServerInfo;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
@@ -26,10 +27,10 @@ public class PlayerListener implements Listener {
 
 
         if (fromServer == null) {  // proxy join
-            plugin.insertPlayer(player, System.currentTimeMillis(), toServer.getName(), false);
+            plugin.insertPlayer(player, System.currentTimeMillis(), toServer.getName(), AFKState.FALSE);
 
         } else {  // switched
-            plugin.insertPlayer(player, System.currentTimeMillis(), toServer.getName(), false);
+            plugin.insertPlayer(player, System.currentTimeMillis(), toServer.getName(), AFKState.FALSE);
 
         }
     }

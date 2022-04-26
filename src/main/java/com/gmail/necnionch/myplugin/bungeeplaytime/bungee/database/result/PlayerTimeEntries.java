@@ -1,4 +1,4 @@
-package com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database;
+package com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -7,16 +7,16 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-public class LookupTop {
+public class PlayerTimeEntries {
 
-    private final List<Entry> entries;
+    private final List<PlayerTimeResult> entries;
 
-    public LookupTop(List<Entry> entries) {
+    public PlayerTimeEntries(List<PlayerTimeResult> entries) {
         this.entries = entries;
 
     }
 
-    public List<Entry> getEntries() {
+    public List<PlayerTimeResult> getEntries() {
         return entries;
     }
 
@@ -26,17 +26,17 @@ public class LookupTop {
             f.complete(Collections.emptyMap());
         } else {
             Set<UUID> waited = entries.stream()
-                    .map(Entry::getUniqueId)
+                    .map(PlayerTimeResult::getPlayerId)
                     .distinct()
                     .collect(Collectors.toCollection(Sets::newConcurrentHashSet));
             Map<UUID, Optional<String>> names = Maps.newConcurrentMap();
 
             entries.forEach(e -> {
-                lookup.fetchPlayerName(e.getUniqueId())
+                lookup.fetchPlayerName(e.getPlayerId())
                         .whenComplete((name, ex) -> {
-                            waited.remove(e.getUniqueId());
+                            waited.remove(e.getPlayerId());
                             if (ex == null) {
-                                names.put(e.getUniqueId(), name.map(PlayerId::getName));
+                                names.put(e.getPlayerId(), name.map(PlayerName::getName));
                             }
 
                             if (waited.isEmpty()) {
@@ -49,37 +49,8 @@ public class LookupTop {
     }
 
 
-
-
-
-    public static class Entry {
-
-        private final UUID uniqueId;
-        private final long playedTime;
-        private final long afkTime;
-
-        public Entry(UUID uniqueId, long playedTime, long afkTime) {
-            this.uniqueId = uniqueId;
-            this.playedTime = playedTime;
-            this.afkTime = afkTime;
-        }
-
-        public UUID getUniqueId() {
-            return uniqueId;
-        }
-
-        public long getPlayedTime() {
-            return playedTime;
-        }
-
-        public long getAFKTime() {
-            return afkTime;
-        }
-
-    }
-
     public interface NameLookup {
-        CompletableFuture<Optional<PlayerId>> fetchPlayerName(UUID playerId);
+        CompletableFuture<Optional<PlayerName>> fetchPlayerName(UUID playerId);
     }
 
 }

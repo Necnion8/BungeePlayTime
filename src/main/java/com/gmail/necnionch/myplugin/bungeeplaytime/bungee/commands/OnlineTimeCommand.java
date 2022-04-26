@@ -1,9 +1,8 @@
 package com.gmail.necnionch.myplugin.bungeeplaytime.bungee.commands;
 
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.BungeePlayTime;
-import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.LookupPlayerResult;
-import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.LookupTop;
-import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.PlayerId;
+import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.PlayerName;
+import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.PlayerTimeResult;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.chat.ComponentBuilder;
@@ -46,13 +45,13 @@ public class OnlineTimeCommand extends Command implements TabExecutor {
                         return;
                     }
 
-                    PlayerId playerId = result.orElse(null);
-                    if (playerId == null) {
+                    PlayerName playerName = result.orElse(null);
+                    if (playerName == null) {
                         sender.sendMessage(new ComponentBuilder("プレイヤーが見つかりません :/").color(ChatColor.RED).create());
                         return;
                     }
 
-                    lookupPlayer(sender, playerId.getUniqueId(), playerId.getName());
+                    lookupPlayer(sender, playerName.getUniqueId(), playerName.getName());
                 });
             }
 
@@ -78,18 +77,26 @@ public class OnlineTimeCommand extends Command implements TabExecutor {
     }
 
 
-    private void lookupPlayer(CommandSender sender, UUID target, String targetName) {
+    public void lookupPlayer(CommandSender sender, UUID target, String targetName) {
         owner.lookupTime(target).whenComplete((result, error) -> {
             if (error != null) {
                 sender.sendMessage(new ComponentBuilder("データエラーです :/").color(ChatColor.RED).create());
                 return;
             }
 
-            LookupPlayerResult lookup = result.orElse(null);
+            PlayerTimeResult lookup = result.orElse(null);
             if (lookup != null) {
-                String formattedTime = owner.formatTimeText(lookup.getPlayedMillis() + lookup.getAFKMillis());
-                sender.sendMessage(TextComponent.fromLegacyText(
-                        String.format("§7[§f§o§li§7] §7%sさんのオンライン時間は %s §7です", targetName, formattedTime)));
+                owner.lookupTimeRanking(target, true).whenComplete((ret, err) -> {
+                    String formattedTime = owner.formatTimeText(lookup.getTotalTime());
+                    String message;
+                    if (err == null && ret.isPresent()) {
+                        int ranking = ret.getAsInt() + 1;
+                        message = String.format("§7[§f§o§li§7] §7%sさんのオンライン時間は %s §7です §e(#%d)", targetName, formattedTime, ranking);
+                    } else {
+                        message = String.format("§7[§f§o§li§7] §7%sさんのオンライン時間は %s §7です", targetName, formattedTime);
+                    }
+                    sender.sendMessage(TextComponent.fromLegacyText(message));
+                });
 
             } else {
                 sender.sendMessage(new ComponentBuilder("データがありません :/").color(ChatColor.RED).create());
@@ -98,8 +105,8 @@ public class OnlineTimeCommand extends Command implements TabExecutor {
 
     }
 
-    private void lookupTops(CommandSender sender) {
-        owner.lookupTimeTops(10, false).whenComplete((tops, error) -> {
+    public void lookupTops(CommandSender sender) {
+        owner.lookupTimeTops(8, 0, true).whenComplete((tops, error) -> {
             if (error != null) {
                 sender.sendMessage(new ComponentBuilder("データエラーです :/").color(ChatColor.RED).create());
                 return;
@@ -117,16 +124,18 @@ public class OnlineTimeCommand extends Command implements TabExecutor {
                     b.append("オンライン時間トップ").color(ChatColor.GOLD);
                     b.append(" ===\n").color(ChatColor.GRAY);
 
-                    for (LookupTop.Entry entry : tops.getEntries()) {
-                        Optional<String> name = names.get(entry.getUniqueId());
+                    int ranking = 1;
+                    for (PlayerTimeResult entry : tops.getEntries()) {
+                        Optional<String> name = names.get(entry.getPlayerId());
 
                         int spaceSize = Math.max(0, maxNameSize - name.orElse("n/a").length());
                         String space = new String(new char[spaceSize]).replace("\0", " ");
-                        b.append(" " + name.orElse("n/a") + space)
+                        b.append(ranking + ". " + name.orElse("n/a") + space)
                                 .color(name.isPresent() ? ChatColor.GOLD : ChatColor.GRAY);
                         b.append(": ").color(ChatColor.GRAY);
 
-                        b.appendLegacy(owner.formatTimeText(entry.getPlayedTime() + entry.getAFKTime()) + "\n");
+                        b.appendLegacy(owner.formatTimeText(entry.getTotalTime()) + "\n");
+                        ranking++;
                     }
                     b.append("===============================").color(ChatColor.GRAY);
                     sender.sendMessage(b.create());
