@@ -11,7 +11,6 @@ import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.errors.DatabaseError;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.hooks.BTLPAFKTagVariable;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.listeners.PlayerListener;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.listeners.PluginMessageListener;
-import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.task.Result;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.BPTUtil;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.Test;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dev.example.ItemRequest;
@@ -133,20 +132,19 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI {
     }
 
 
-    private CompletableFuture<Result<Boolean>> putPlayerTime(PlayerTime pTime, long time) {
-        CompletableFuture<Result<Boolean>> f = new CompletableFuture<>();
-        Result<Boolean> r = new Result<>();
+    private CompletableFuture<Boolean> putPlayerTime(PlayerTime pTime, long time) {
+        CompletableFuture<Boolean> f = new CompletableFuture<>();
 
         getProxy().getScheduler().runAsync(this, () -> {
             try {
                 ProxiedPlayer p = pTime.getPlayer();
                 database.putTime(p.getUniqueId(), p.getName(), pTime.getStartTime(), time, pTime.getServer(), pTime.getAFKState());
-                r.setResult(true);
+                f.complete(true);
+
             } catch (SQLException e) {
                 getLogger().log(Level.SEVERE, "Exception in putPlayerTime", e);
-                r.setException(new DatabaseError(e));
+                f.completeExceptionally(new DatabaseError(e));
             }
-            f.complete(r);
         });
         return f;
     }
