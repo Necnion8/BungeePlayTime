@@ -10,6 +10,7 @@ import com.gmail.necnionch.myplugin.bungeeplaytime.common.command.CommandSender;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.command.RootCommand;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.command.errors.CommandError;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.command.errors.NotFoundCommandError;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.LookupTimeOptions;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.config.ServerInfo;
@@ -127,7 +128,7 @@ public class MainCommand extends RootCommand {
             CompletableFuture<OptionalLong> firstTimeFuture = plugin.lookupFirstTime(playerName.getUniqueId());
             CompletableFuture<OptionalLong> lastTimeFuture = plugin.lookupLastTime(playerName.getUniqueId());
             CompletableFuture<Optional<PlayerTimeResult>> timeFuture = plugin.lookupTime(playerName.getUniqueId());
-            CompletableFuture<OptionalInt> rankingFuture = plugin.lookupTimeRanking(playerName.getUniqueId(), false);
+            CompletableFuture<OptionalInt> rankingFuture = plugin.lookupTimeRanking(playerName.getUniqueId(), new LookupTimeOptions().totalTime(false));
 
             CompletableFuture.allOf(firstTimeFuture, lastTimeFuture, timeFuture, rankingFuture).whenComplete((ret, err) -> {
                 b.append("[").color(ChatColor.GRAY).append("BungeePlayTime").color(ChatColor.AQUA).append("] ").color(ChatColor.GRAY);

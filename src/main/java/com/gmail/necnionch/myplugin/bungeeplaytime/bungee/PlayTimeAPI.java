@@ -3,6 +3,8 @@ package com.gmail.necnionch.myplugin.bungeeplaytime.bungee;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.PlayerName;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.PlayerTimeEntries;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.PlayerTimeResult;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.LookupTimeListOptions;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.LookupTimeOptions;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -14,17 +16,13 @@ public interface PlayTimeAPI {
     Optional<PlayerTime> getPlayer(UUID playerId);
 
 
-    CompletableFuture<Optional<PlayerTimeResult>> lookupTime(UUID playerId, long afters);
+    CompletableFuture<Optional<PlayerTimeResult>> lookupTime(UUID playerId, LookupTimeOptions options);
 
     CompletableFuture<Optional<PlayerTimeResult>> lookupTime(UUID playerId);
 
-    CompletableFuture<PlayerTimeEntries> lookupTimeTops(int count, int offset, boolean totalTime, long afters);
+    CompletableFuture<PlayerTimeEntries> lookupTimeTops(LookupTimeListOptions options);
 
-    CompletableFuture<PlayerTimeEntries> lookupTimeTops(int count, int offset, boolean totalTime);
-
-    CompletableFuture<OptionalInt> lookupTimeRanking(UUID playerId, boolean totalTime, long afters);
-
-    CompletableFuture<OptionalInt> lookupTimeRanking(UUID playerId, boolean totalTime);
+    CompletableFuture<OptionalInt> lookupTimeRanking(UUID playerId, LookupTimeOptions options);
 
     CompletableFuture<OptionalLong> lookupFirstTime(UUID playerId);
 

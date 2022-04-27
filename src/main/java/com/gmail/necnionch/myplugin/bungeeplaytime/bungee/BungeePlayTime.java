@@ -13,6 +13,8 @@ import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.errors.DatabaseError;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.hooks.BTLPAFKTagVariable;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.listeners.PlayerListener;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.BPTUtil;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.LookupTimeListOptions;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.LookupTimeOptions;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.Request;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.Response;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packets.AFKChange;
@@ -240,12 +242,12 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
 
 
     @Override
-    public CompletableFuture<Optional<PlayerTimeResult>> lookupTime(UUID playerId, long afters) {
+    public CompletableFuture<Optional<PlayerTimeResult>> lookupTime(UUID playerId, LookupTimeOptions options) {
         CompletableFuture<Optional<PlayerTimeResult>> f = new CompletableFuture<>();
 
         getProxy().getScheduler().runAsync(this, () -> {
             try {
-                Optional<PlayerTimeResult> result = database.lookupTime(playerId, afters);
+                Optional<PlayerTimeResult> result = database.lookupTime(playerId, options);
                 f.complete(result);
             } catch (SQLException e) {
                 getLogger().log(Level.SEVERE, "Exception in lookupTime", e);
@@ -257,16 +259,16 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
 
     @Override
     public CompletableFuture<Optional<PlayerTimeResult>> lookupTime(UUID playerId) {
-        return lookupTime(playerId, 0);
+        return lookupTime(playerId, new LookupTimeOptions().totalTime(false));
     }
 
     @Override
-    public CompletableFuture<PlayerTimeEntries> lookupTimeTops(int count, int offset, boolean totalTime, long afters) {
+    public CompletableFuture<PlayerTimeEntries> lookupTimeTops(LookupTimeListOptions options) {
         CompletableFuture<PlayerTimeEntries> f = new CompletableFuture<>();
 
         getProxy().getScheduler().runAsync(this, () -> {
             try {
-                f.complete(database.lookupTimeTops(count, offset, totalTime, afters));
+                f.complete(database.lookupTimeTops(options));
 
             } catch (SQLException e) {
                 getLogger().log(Level.SEVERE, "Exception in lookupTimeTops", e);
@@ -277,17 +279,12 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
     }
 
     @Override
-    public CompletableFuture<PlayerTimeEntries> lookupTimeTops(int count, int offset, boolean totalTime) {
-        return lookupTimeTops(count, offset, totalTime, 0);
-    }
-
-    @Override
-    public CompletableFuture<OptionalInt> lookupTimeRanking(UUID playerId, boolean totalTime, long afters) {
+    public CompletableFuture<OptionalInt> lookupTimeRanking(UUID playerId, LookupTimeOptions options) {
         CompletableFuture<OptionalInt> f = new CompletableFuture<>();
 
         getProxy().getScheduler().runAsync(this, () -> {
             try {
-                OptionalInt ranking = database.lookupTimeRanking(playerId, totalTime, afters);
+                OptionalInt ranking = database.lookupTimeRanking(playerId, options);
                 f.complete(ranking);
             } catch (SQLException e) {
                 getLogger().log(Level.SEVERE, "Exception in lookupTimeRanking", e);
@@ -295,11 +292,6 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
             }
         });
         return f;
-    }
-
-    @Override
-    public CompletableFuture<OptionalInt> lookupTimeRanking(UUID playerId, boolean totalTime) {
-        return lookupTimeRanking(playerId, totalTime, 0);
     }
 
     @Override

@@ -5,6 +5,8 @@ import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.MainConfig;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.PlayerName;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.PlayerTimeEntries;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.PlayerTimeResult;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.LookupTimeListOptions;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.LookupTimeOptions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -120,9 +122,12 @@ public class MySQLDatabase implements Database {
     }
 
     @Override
-    public Optional<PlayerTimeResult> lookupTime(UUID playerId, long afters) throws SQLException {
+    public Optional<PlayerTimeResult> lookupTime(UUID playerId, LookupTimeOptions options) throws SQLException {
         if (isClosed() && !openConnection())
             throw new IllegalStateException("connection is closed");
+
+        String paramAfters = (options.getAfters().isPresent()) ? " AND `startTime` > ?" : "";
+        String paramServer = (options.getServerName().isPresent()) ? " AND `server` = ?" : "";
 
         String sql = ""
                 + "SELECT "
@@ -130,10 +135,18 @@ public class MySQLDatabase implements Database {
                 + "  SUM(case when `isAFK` = 1 then `time` else 0 end) AS `afk`, "
                 + "  SUM(case when `isAFK` = -1 then `time` else 0 end) AS `unknown` "
                 + "FROM `times` "
-                + "WHERE `uuid` = ? AND `startTime` > ?";
+                + "WHERE `uuid` = ?" + paramAfters + paramServer;
+
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+
             stmt.setString(1, playerId.toString());
-            stmt.setLong(2, afters);
+
+            if (options.getAfters().isPresent())
+                stmt.setLong(2, options.getAfters().getAsLong());
+
+            if (options.getServerName().isPresent())
+                stmt.setNString(3, options.getServerName().get());
+
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
                 long played = rs.getLong("played");
@@ -146,14 +159,20 @@ public class MySQLDatabase implements Database {
     }
 
     @Override
-    public PlayerTimeEntries lookupTimeTops(int count, int offset, boolean totalTime, long afters) throws SQLException {
+    public PlayerTimeEntries lookupTimeTops(LookupTimeListOptions options) throws SQLException {
         if (isClosed() && !openConnection())
             throw new IllegalStateException("connection is closed");
 
-        if (count <= 0)
-            throw new IllegalArgumentException("count > 0");
-        if (offset < 0)
-            throw new IllegalArgumentException("offset >= 0");
+        Set<String> wheres = Sets.newHashSet();
+
+        boolean totalTime = options.isTotalTime();
+        String paramCount = (options.getCount().isPresent()) ? " LIMIT ?" : "";
+        String paramOffset = (options.getOffset().isPresent()) ? " OFFSET ?" : "";
+        if (options.getAfters().isPresent())
+            wheres.add("`startTime` > ?");
+        if (options.getServerName().isPresent())
+            wheres.add("`server` = ?");
+        String whereLine = (wheres.isEmpty()) ? "" : "WHERE " + String.join(" AND ", wheres) + " ";
 
         String targetColumn = (totalTime) ? "total" : "played";
         String sql = ""
@@ -164,17 +183,24 @@ public class MySQLDatabase implements Database {
                 + "  SUM(case when `isAFK` = 1 then `time` else 0 end) AS `afk`, "
                 + "  SUM(case when `isAFK` = -1 then `time` else 0 end) AS `unknown` "
                 + "FROM `times` "
-                + "WHERE `startTime` > ? "
+                + whereLine
                 + "GROUP BY `uuid` "
                 + "ORDER BY `" + targetColumn + "` DESC "
-                + "LIMIT ? OFFSET ?";
+                + paramCount + paramOffset;
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.setLong(1, afters);
-            stmt.setInt(2, count);
-            stmt.setInt(3, offset);
-            List<PlayerTimeResult> entries = Lists.newArrayList();
+            int pIndex = 1;
 
+            if (options.getAfters().isPresent())
+                stmt.setLong(pIndex++, options.getAfters().getAsLong());
+            if (options.getServerName().isPresent())
+                stmt.setNString(pIndex++, options.getServerName().get());
+            if (options.getCount().isPresent())
+                stmt.setInt(pIndex++, options.getCount().getAsInt());
+            if (options.getOffset().isPresent())
+            stmt.setInt(pIndex, options.getOffset().getAsInt());
+
+            List<PlayerTimeResult> entries = Lists.newArrayList();
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     UUID uuid = UUID.fromString(rs.getString("uuid"));
@@ -192,19 +218,31 @@ public class MySQLDatabase implements Database {
     }
 
     @Override
-    public OptionalInt lookupTimeRanking(UUID playerId, boolean totalTime, long afters) throws SQLException {
+    public OptionalInt lookupTimeRanking(UUID playerId, LookupTimeOptions options) throws SQLException {
         if (isClosed() && !openConnection())
             throw new IllegalStateException("connection is closed");
+
+        boolean totalTime = options.isTotalTime();
+        String paramAfters = (options.getAfters().isPresent()) ? " AND `startTime` > ?" : "";
+        String paramServer = (options.getServerName().isPresent()) ? " AND `server` = ?" : "";
 
         // exists check
         boolean found;
         String sql = "SELECT `uuid` FROM `times` WHERE `uuid` = ?";
         if (!totalTime)
             sql += " AND `isAFK` = 0";
+        sql += paramAfters + paramServer;
         sql += " LIMIT 1";
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.setString(1, playerId.toString());
+            int pIndex = 1;
+            stmt.setString(pIndex++, playerId.toString());
+
+            if (options.getAfters().isPresent())
+                stmt.setLong(pIndex++, options.getAfters().getAsLong());
+            if (options.getServerName().isPresent())
+                stmt.setNString(pIndex, options.getServerName().get());
+
             try (ResultSet rs = stmt.executeQuery()) {
                 found = rs.next();
             }
@@ -232,11 +270,18 @@ public class MySQLDatabase implements Database {
                 + "      FROM"
                 + "        `times`"
                 + "      WHERE"
-                + "        `uuid` = ?"
+                + "        `uuid` = ?" + paramAfters + paramServer
                 + "    )"
                 + ") AS `totals`";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.setString(1, playerId.toString());
+            int pIndex = 1;
+            stmt.setString(pIndex++, playerId.toString());
+
+            if (options.getAfters().isPresent())
+                stmt.setLong(pIndex++, options.getAfters().getAsLong());
+            if (options.getServerName().isPresent())
+                stmt.setNString(pIndex, options.getServerName().get());
+
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next())
                     return OptionalInt.of(rs.getInt("rank"));

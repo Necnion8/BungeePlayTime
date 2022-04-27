@@ -4,6 +4,8 @@ import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.BungeePlayTime;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.PlayerName;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.PlayerTimeResult;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.BPTUtil;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.LookupTimeListOptions;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.LookupTimeOptions;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.chat.ComponentBuilder;
@@ -87,7 +89,7 @@ public class PlayTimeCommand extends Command implements TabExecutor {
 
             PlayerTimeResult lookup = result.orElse(null);
             if (lookup != null) {
-                owner.lookupTimeRanking(target, false).whenComplete((ret, err) -> {
+                owner.lookupTimeRanking(target, new LookupTimeOptions().totalTime(false)).whenComplete((ret, err) -> {
                     String formattedTime = BPTUtil.formatTimeText(lookup.getPlayTime());
                     String message;
                     if (err == null && ret.isPresent()) {
@@ -107,7 +109,7 @@ public class PlayTimeCommand extends Command implements TabExecutor {
     }
 
     public void lookupTops(CommandSender sender) {
-        owner.lookupTimeTops(8, 0, false).whenComplete((tops, error) -> {
+        owner.lookupTimeTops(new LookupTimeListOptions().count(8).totalTime(false)).whenComplete((tops, error) -> {
             if (error != null) {
                 sender.sendMessage(new ComponentBuilder("データエラーです :/").color(ChatColor.RED).create());
                 return;

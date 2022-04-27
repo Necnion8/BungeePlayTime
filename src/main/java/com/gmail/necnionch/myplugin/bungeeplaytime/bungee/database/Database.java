@@ -4,6 +4,8 @@ import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.AFKState;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.PlayerName;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.PlayerTimeEntries;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.PlayerTimeResult;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.LookupTimeListOptions;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.LookupTimeOptions;
 
 import java.sql.SQLException;
 import java.util.Optional;
@@ -35,11 +37,11 @@ public interface Database {
     void putTime(UUID playerId, String playerName, long startTime, long time, String server, AFKState afk) throws SQLException;
 
 
-    Optional<PlayerTimeResult> lookupTime(UUID playerId, long afters) throws SQLException;
+    Optional<PlayerTimeResult> lookupTime(UUID playerId, LookupTimeOptions options) throws SQLException;
 
-    PlayerTimeEntries lookupTimeTops(int count, int offset, boolean totalTime, long afters) throws SQLException;
+    PlayerTimeEntries lookupTimeTops(LookupTimeListOptions options) throws SQLException;
 
-    OptionalInt lookupTimeRanking(UUID playerId, boolean totalTime, long afters) throws SQLException;
+    OptionalInt lookupTimeRanking(UUID playerId, LookupTimeOptions options) throws SQLException;
 
     OptionalLong lookupFirstTime(UUID playerId) throws SQLException;
 
