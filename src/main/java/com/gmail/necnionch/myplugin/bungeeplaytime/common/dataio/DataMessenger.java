@@ -183,7 +183,7 @@ public abstract class DataMessenger {
             }
             Res response = handler.processRequest(request);
 
-            ByteArrayDataOutput output = createPacket(SendType.RESPONSE, reqId, dataKey);
+            ByteArrayDataOutput output = createPacket(SendType.RESPONSE, reqId, response.getDataKey());
             response.serialize(output);
             writeOut(output.toByteArray());
 

@@ -16,6 +16,7 @@ import com.gmail.necnionch.myplugin.bungeeplaytime.common.BPTUtil;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.Request;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.Response;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packets.AFKChange;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packets.AFKChangeRequest;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packets.PingRequest;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packets.SettingChange;
 import com.google.common.collect.Maps;
@@ -216,6 +217,13 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
                 mainConfig.getPlayers().isPlayedInUnknownState(),
                 mainConfig.getPlayers().getAFKMinutes()
         );
+    }
+
+    public void sendAFKChangeRequest(ProxiedPlayer player, boolean afk) {
+        ServerMessenger messenger = this.messenger.getMessenger(player.getServer().getInfo());
+        if (messenger != null) {
+            messenger.send(new AFKChangeRequest(player.getUniqueId(), afk));
+        }
     }
 
     // apis

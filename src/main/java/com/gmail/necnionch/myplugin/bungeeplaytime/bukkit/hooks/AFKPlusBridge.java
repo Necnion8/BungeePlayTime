@@ -8,6 +8,7 @@ import com.google.common.collect.Maps;
 import net.lapismc.afkplus.AFKPlus;
 import net.lapismc.afkplus.api.AFKStartEvent;
 import net.lapismc.afkplus.api.AFKStopEvent;
+import net.lapismc.afkplus.playerdata.AFKPlusPlayer;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
@@ -96,7 +97,6 @@ public class AFKPlusBridge extends PluginHook implements Listener {
 
     @EventHandler
     public void onCommand(ServerCommandEvent event) {
-        System.out.println("serverCommand");
         if (event.getCommand().startsWith("afk") || event.getCommand().startsWith("afk:afk")) {
             lastExecutingAFKCommand = System.currentTimeMillis();
         }
@@ -114,6 +114,17 @@ public class AFKPlusBridge extends PluginHook implements Listener {
         if (afkTimeout.containsKey(player.getUniqueId()))
             return false;
         return afkPlus.getPlayer(player).isAFK();
+    }
+
+    public void setAFK(UUID playerId, boolean afk) {
+        AFKPlusPlayer afkPlayer = afkPlus.getPlayer(playerId);
+        if (afkPlayer != null) {
+            if (afk) {
+                afkPlayer.startAFK();
+            } else {
+                afkPlayer.stopAFK();
+            }
+        }
     }
 
 

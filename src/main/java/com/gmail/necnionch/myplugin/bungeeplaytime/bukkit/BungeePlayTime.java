@@ -6,6 +6,7 @@ import com.gmail.necnionch.myplugin.bungeeplaytime.common.BPTUtil;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.Request;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.Response;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packets.AFKChange;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packets.AFKChangeRequest;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packets.PingRequest;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packets.SettingChange;
 import org.bukkit.event.Listener;
@@ -80,6 +81,11 @@ public class BungeePlayTime extends JavaPlugin implements Listener {
     private <Res extends Response> void onRequest(Request<Res> request) {
         if (request instanceof PingRequest) {
             onConnect();
+        } else if (request instanceof AFKChangeRequest) {
+            AFKChangeRequest req = (AFKChangeRequest) request;
+            if (afkPlusBridge.isEnabled()) {
+                afkPlusBridge.setAFK(req.getPlayerId(), req.isAFK());
+            }
         } else if (request instanceof SettingChange) {
             SettingChange req = (SettingChange) request;
             playedInUnknownState = req.isPlayedInUnknown();

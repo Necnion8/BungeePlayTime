@@ -3,10 +3,7 @@ package com.gmail.necnionch.myplugin.bungeeplaytime.bukkit.dataio;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.DataMessenger;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.Request;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.Response;
-import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packets.AFKChangeResponse;
-import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packets.PingRequest;
-import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packets.PingResponse;
-import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packets.SettingChange;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packets.*;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -30,6 +27,7 @@ public class BukkitDataMessenger extends DataMessenger implements PluginMessageL
         registerHandler(new PingRequest.Handler());
         registerHandler(new PingResponse.Handler());
         registerHandler(new AFKChangeResponse.Handler());
+        registerHandler(new AFKChangeRequest.Handler());
         registerHandler(new SettingChange.Handler());
     }
 

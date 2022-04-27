@@ -4,6 +4,7 @@ import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.AFKState;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.BungeePlayTime;
 import net.md_5.bungee.api.config.ServerInfo;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
+import net.md_5.bungee.api.event.ChatEvent;
 import net.md_5.bungee.api.event.PlayerDisconnectEvent;
 import net.md_5.bungee.api.event.ServerConnectedEvent;
 import net.md_5.bungee.api.plugin.Listener;
@@ -46,6 +47,12 @@ public class PlayerListener implements Listener {
 
     }
 
+    @EventHandler
+    public void onChat(ChatEvent event) {  // chat or command executes
+        if (!(event.getSender() instanceof ProxiedPlayer))
+            return;
+        plugin.sendAFKChangeRequest(((ProxiedPlayer) event.getSender()), false);
 
+    }
 
 }
