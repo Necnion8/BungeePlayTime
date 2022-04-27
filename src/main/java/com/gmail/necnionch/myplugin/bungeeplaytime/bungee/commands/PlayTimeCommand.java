@@ -3,6 +3,7 @@ package com.gmail.necnionch.myplugin.bungeeplaytime.bungee.commands;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.BungeePlayTime;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.PlayerName;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.PlayerTimeResult;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.BPTUtil;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.chat.ComponentBuilder;
@@ -87,7 +88,7 @@ public class PlayTimeCommand extends Command implements TabExecutor {
             PlayerTimeResult lookup = result.orElse(null);
             if (lookup != null) {
                 owner.lookupTimeRanking(target, false).whenComplete((ret, err) -> {
-                    String formattedTime = owner.formatTimeText(lookup.getPlayTime());
+                    String formattedTime = BPTUtil.formatTimeText(lookup.getPlayTime());
                     String message;
                     if (err == null && ret.isPresent()) {
                         int ranking = ret.getAsInt() + 1;
@@ -134,7 +135,7 @@ public class PlayTimeCommand extends Command implements TabExecutor {
                                 .color(name.isPresent() ? ChatColor.GOLD : ChatColor.GRAY);
                         b.append(": ").color(ChatColor.GRAY);
 
-                        b.appendLegacy(owner.formatTimeText(entry.getPlayTime()) + "\n");
+                        b.appendLegacy(BPTUtil.formatTimeText(entry.getPlayTime()) + "\n");
                         ranking++;
                     }
                     b.append("=============================").color(ChatColor.GRAY);

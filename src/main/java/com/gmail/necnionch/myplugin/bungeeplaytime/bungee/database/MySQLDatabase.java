@@ -7,6 +7,7 @@ import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.Player
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.PlayerTimeResult;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import java.sql.*;
 import java.util.*;
@@ -20,7 +21,7 @@ public class MySQLDatabase implements Database {
     private final Map<String, String> dbOptions;
     private final Logger log;
     private Connection connection;
-    private final Map<UUID, String> cachedPlayerNames = Maps.newConcurrentMap();
+    private final Map<UUID, String> cachedPlayerNames = Collections.synchronizedMap(Maps.newLinkedHashMap());
 
 
     public MySQLDatabase(String address, String database, String username, String password, Map<String, String> dbOptions, Logger logger) {
@@ -77,7 +78,7 @@ public class MySQLDatabase implements Database {
         if (isClosed())
             throw new IllegalStateException("connection is closed");
 
-        String sql = "CREATE TABLE IF NOT EXISTS users (uuid VARCHAR(36) UNIQUE, name TEXT)";
+        String sql = "CREATE TABLE IF NOT EXISTS users (uuid VARCHAR(36) UNIQUE, name TEXT, lastTime BIGINT)";
         try (Statement stmt = connection.createStatement()) {
             stmt.executeUpdate(sql);
         }
@@ -85,6 +86,17 @@ public class MySQLDatabase implements Database {
         sql = "CREATE TABLE IF NOT EXISTS times (uuid VARCHAR(36), startTime BIGINT, time BIGINT, server TEXT, isAFK INT)";
         try (Statement stmt = connection.createStatement()) {
             stmt.executeUpdate(sql);
+        }
+
+        // v2: add columns
+        DatabaseMetaData meta = connection.getMetaData();
+        try (ResultSet rs = meta.getColumns(null, null, "users", "lastTime")) {
+            if (!rs.next()) {
+                sql = "ALTER TABLE `users` ADD `lastTime` BIGINT NOT NULL DEFAULT 0";
+                try (Statement stmt = connection.createStatement()) {
+                    stmt.executeUpdate(sql);
+                }
+            }
         }
     }
 
@@ -103,23 +115,7 @@ public class MySQLDatabase implements Database {
             stmt.executeUpdate();
         }
 
-        // update name
-        if (!cachedPlayerNames.containsKey(playerId)) {  // no cached
-//            log.warning("no cached -> fetch...");
-            try {
-                fetchPlayerName(playerId)
-                    .ifPresent(s -> {
-                        cachedPlayerNames.put(playerId, s);
-//                        log.warning("  no fetched");
-                    });
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        }
-
-        if (!playerName.equals(cachedPlayerNames.getOrDefault(playerId, null))) {
-            putPlayerName(playerId, playerName);
-        }
+        putPlayerName(playerId, playerName);
 
     }
 
@@ -302,7 +298,7 @@ public class MySQLDatabase implements Database {
         if (isClosed())
             return Optional.empty();
 
-        String sql = "SELECT uuid, name FROM `users` WHERE LOWER(name) = ? LIMIT 1";
+        String sql = "SELECT * FROM `users` WHERE LOWER(name) = ? ORDER BY `lastTime` DESC LIMIT 1";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, playerName.toLowerCase(Locale.ROOT));
             ResultSet rs = stmt.executeQuery();
@@ -329,16 +325,13 @@ public class MySQLDatabase implements Database {
         if (isClosed() && !openConnection())
             throw new IllegalStateException("connection is closed");
 
-        String sql = "DELETE FROM `users` WHERE uuid=?";
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.setString(1, playerId.toString());
-            stmt.executeUpdate();
-        }
-
-        sql = "INSERT INTO `users` VALUES (?, ?)";
+        String sql = "INSERT INTO `users` VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE `name` = ?, `lastTime` = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, playerId.toString());
             stmt.setString(2, playerName);
+            stmt.setLong(3, System.currentTimeMillis());
+            stmt.setString(4, playerName);
+            stmt.setLong(5, System.currentTimeMillis());
             stmt.executeUpdate();
         }
         cachedPlayerNames.put(playerId, playerName);
@@ -361,7 +354,7 @@ public class MySQLDatabase implements Database {
 
     @Override
     public Optional<PlayerName> getPlayerId(String playerName) throws SQLException {
-        Optional<Map.Entry<UUID, String>> cached = cachedPlayerNames.entrySet()
+        Optional<Map.Entry<UUID, String>> cached = Sets.newLinkedHashSet(cachedPlayerNames.entrySet())
                 .stream()
                 .filter(e -> e.getValue().equalsIgnoreCase(playerName))
                 .findFirst();
@@ -369,6 +362,11 @@ public class MySQLDatabase implements Database {
             return Optional.of(new PlayerName(cached.get().getKey(), cached.get().getValue()));
 
         return fetchPlayerId(playerName);
+    }
+
+
+    public Map<UUID, String> cachedPlayerNames() {
+        return Collections.unmodifiableMap(cachedPlayerNames);
     }
 
 }

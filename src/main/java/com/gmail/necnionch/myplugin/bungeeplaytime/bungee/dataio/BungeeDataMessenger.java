@@ -188,7 +188,7 @@ public class BungeeDataMessenger implements Listener {
         getScheduler().schedule(plugin, () -> {  // timeout
             pingWaits.remove(request);
             request.cancel();
-        }, 5, TimeUnit.SECONDS);
+        }, 3, TimeUnit.SECONDS);
     }
 
     public String getChannelName() {

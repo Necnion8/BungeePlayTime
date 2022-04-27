@@ -35,7 +35,4 @@ public interface PlayTimeAPI {
 
     CompletableFuture<Optional<PlayerName>> fetchPlayerId(String playerName);
 
-
-    String formatTimeText(long millis);
-
 }

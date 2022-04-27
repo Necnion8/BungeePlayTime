@@ -19,17 +19,13 @@ import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packets.AFKChan
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packets.PingRequest;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packets.SettingChange;
 import com.google.common.collect.Maps;
-import net.md_5.bungee.api.ChatColor;
-import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
-import net.md_5.bungee.api.plugin.Command;
 import net.md_5.bungee.api.plugin.Plugin;
 
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 
 //TODO: Last Join date command
 
@@ -84,14 +80,6 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
         getProxy().getPluginManager().registerCommand(this, new OnlineTimeTopCommand(onlineTimeCommand));
         getProxy().getPluginManager().registerCommand(this, new AFKPlayersCommand(this));
 
-        // todo: debug
-        getProxy().getPluginManager().registerCommand(this, new Command("testactives") {
-            @Override
-            public void execute(CommandSender sender, String[] args) {
-                String list = messenger.actives().stream().map(msg -> msg.getServerInfo().getName()).collect(Collectors.joining(", "));
-                sender.sendMessage("actives: " + list);
-            }
-        });
     }
 
     @Override
@@ -368,15 +356,13 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
     }
 
 
-    @Override
-    public String formatTimeText(long millis) {
-        long offset = millis / 1000L;
-        int hours = (int) offset / 3600;
-        offset -= (hours * 3600);
-        int minutes = (int) offset / 60;
-
-        return ((hours > 0) ? ChatColor.GOLD.toString() + hours + ChatColor.GRAY + "時間 " : "")
-                + ChatColor.GOLD + minutes + ChatColor.GRAY + "分";
+    public Map<UUID, String> getPlayerNameCache() {
+        if (database instanceof MySQLDatabase) {
+            return ((MySQLDatabase) database).cachedPlayerNames();
+        }
+        return Collections.emptyMap();
     }
+
+
 
 }
