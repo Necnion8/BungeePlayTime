@@ -48,9 +48,13 @@ public class PlayerListener implements Listener {
     }
 
     @EventHandler
-    public void onChat(ChatEvent event) {  // chat or command executes
+    public void onChat(ChatEvent event) {  // chat or proxy command executes
         if (!(event.getSender() instanceof ProxiedPlayer))
             return;
+
+        if (event.isCommand() && !event.isProxyCommand())
+            return;  // ignored non-proxy command
+
         plugin.sendAFKChangeRequest(((ProxiedPlayer) event.getSender()), false);
 
     }
