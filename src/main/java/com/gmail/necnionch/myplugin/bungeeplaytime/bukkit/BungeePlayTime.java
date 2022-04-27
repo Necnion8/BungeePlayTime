@@ -2,6 +2,7 @@ package com.gmail.necnionch.myplugin.bungeeplaytime.bukkit;
 
 import com.gmail.necnionch.myplugin.bungeeplaytime.bukkit.dataio.BukkitDataMessenger;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bukkit.hooks.AFKPlusBridge;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.AFKState;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.BPTUtil;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.Request;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.Response;
@@ -17,7 +18,6 @@ public class BungeePlayTime extends JavaPlugin implements Listener {
     private static BungeePlayTime instance;
     private BukkitDataMessenger messenger;
     private final AFKPlusBridge afkPlusBridge = new AFKPlusBridge(this);
-    private boolean playedInUnknownState;
     private int afkMinutes = 5;
 
     @Override
@@ -59,10 +59,6 @@ public class BungeePlayTime extends JavaPlugin implements Listener {
         return messenger;
     }
 
-    public boolean isPlayedInUnknownState() {
-        return playedInUnknownState;
-    }
-
     public int getAFKMinutes() {
         return afkMinutes;
     }
@@ -73,7 +69,7 @@ public class BungeePlayTime extends JavaPlugin implements Listener {
                     AFKState state = AFKState.UNKNOWN;
                     if (afkPlusBridge.isEnabled())
                         state = afkPlusBridge.isAFK(p) ? AFKState.TRUE : AFKState.FALSE;
-                    getMessenger().send(new AFKChange(p.getUniqueId(), state.getValue()));
+                    getMessenger().send(new AFKChange(p.getUniqueId(), state));
                 });
     }
 
@@ -88,7 +84,7 @@ public class BungeePlayTime extends JavaPlugin implements Listener {
             }
         } else if (request instanceof SettingChange) {
             SettingChange req = (SettingChange) request;
-            playedInUnknownState = req.isPlayedInUnknown();
+            BPTUtil.setPlayedInUnknownState(req.isPlayedInUnknown());
             afkMinutes = req.getAFKMinutes();
         }
 

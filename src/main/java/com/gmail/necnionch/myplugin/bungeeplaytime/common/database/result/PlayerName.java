@@ -1,4 +1,4 @@
-package com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result;
+package com.gmail.necnionch.myplugin.bungeeplaytime.common.database.result;
 
 import java.util.UUID;
 

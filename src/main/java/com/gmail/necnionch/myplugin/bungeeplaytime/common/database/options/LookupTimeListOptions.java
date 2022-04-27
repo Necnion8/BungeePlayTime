@@ -1,4 +1,4 @@
-package com.gmail.necnionch.myplugin.bungeeplaytime.common.database;
+package com.gmail.necnionch.myplugin.bungeeplaytime.common.database.options;
 
 import java.util.OptionalInt;
 

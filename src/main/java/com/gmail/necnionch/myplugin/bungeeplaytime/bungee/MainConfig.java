@@ -1,5 +1,6 @@
 package com.gmail.necnionch.myplugin.bungeeplaytime.bungee;
 
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.BPTUtil;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.BungeeConfigDriver;
 import net.md_5.bungee.api.plugin.Plugin;
 import net.md_5.bungee.config.Configuration;
@@ -22,6 +23,16 @@ public class MainConfig extends BungeeConfigDriver {
 
     public Database getMySQL() {
         return mySqlSection;
+    }
+
+
+    @Override
+    public boolean onLoaded(Configuration config) {
+        if (super.onLoaded(config)) {
+            BPTUtil.setPlayedInUnknownState(playersSection.isPlayedInUnknownState());
+            return true;
+        }
+        return false;
     }
 
 

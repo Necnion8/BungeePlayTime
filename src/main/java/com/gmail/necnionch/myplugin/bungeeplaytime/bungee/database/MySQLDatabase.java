@@ -1,12 +1,12 @@
 package com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database;
 
-import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.AFKState;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.MainConfig;
-import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.PlayerName;
-import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.PlayerTimeEntries;
-import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.PlayerTimeResult;
-import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.LookupTimeListOptions;
-import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.LookupTimeOptions;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.AFKState;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.options.LookupTimeListOptions;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.options.LookupTimeOptions;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.result.PlayerName;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.result.PlayerTimeEntries;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.result.PlayerTimeResult;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;

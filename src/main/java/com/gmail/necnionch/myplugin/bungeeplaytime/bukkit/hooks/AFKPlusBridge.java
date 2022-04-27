@@ -1,8 +1,8 @@
 package com.gmail.necnionch.myplugin.bungeeplaytime.bukkit.hooks;
 
-import com.gmail.necnionch.myplugin.bungeeplaytime.bukkit.AFKState;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bukkit.BungeePlayTime;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bukkit.dataio.BukkitDataMessenger;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.AFKState;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packets.AFKChange;
 import com.google.common.collect.Maps;
 import net.lapismc.afkplus.AFKPlus;
@@ -75,7 +75,7 @@ public class AFKPlusBridge extends PluginHook implements Listener {
         // by command? hacky
         if (System.currentTimeMillis() - lastExecutingAFKCommand <= 2) {
             lastExecutingAFKCommand = 0;
-            getMessenger().send(AFKChange.fromBukkit(uuid, AFKState.TRUE));
+            getMessenger().send(new AFKChange(uuid, AFKState.TRUE));
         } else {
             afkTimeout.put(uuid, System.currentTimeMillis());
         }
@@ -91,7 +91,7 @@ public class AFKPlusBridge extends PluginHook implements Listener {
 
         Long afkTime = afkTimeout.remove(uuid);
         if (afkTime == null) {
-            getMessenger().send(AFKChange.fromBukkit(uuid, AFKState.FALSE));
+            getMessenger().send(new AFKChange(uuid, AFKState.FALSE));
         }
     }
 
@@ -133,7 +133,7 @@ public class AFKPlusBridge extends PluginHook implements Listener {
         for (Iterator<Map.Entry<UUID, Long>> it = afkTimeout.entrySet().iterator(); it.hasNext(); ) {
             Map.Entry<UUID, Long> e = it.next();
             if (System.currentTimeMillis() - e.getValue() > (owner.getAFKMinutes() * 60 * 1000L)) {
-                getMessenger().send(AFKChange.fromBukkit(e.getKey(), AFKState.TRUE, e.getValue()));
+                getMessenger().send(new AFKChange(e.getKey(), AFKState.TRUE, e.getValue()));
                 it.remove();
             }
         }

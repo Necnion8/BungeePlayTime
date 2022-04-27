@@ -1,5 +1,6 @@
 package com.gmail.necnionch.myplugin.bungeeplaytime.bungee;
 
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.AFKState;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
 
 

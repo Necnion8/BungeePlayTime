@@ -4,17 +4,18 @@ import codecrafter47.bungeetablistplus.api.bungee.BungeeTabListPlusAPI;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.commands.*;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.Database;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.MySQLDatabase;
-import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.PlayerName;
-import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.PlayerTimeEntries;
-import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.PlayerTimeResult;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.dataio.BungeeDataMessenger;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.dataio.ServerMessenger;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.errors.DatabaseError;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.hooks.BTLPAFKTagVariable;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.listeners.PlayerListener;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.AFKState;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.BPTUtil;
-import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.LookupTimeListOptions;
-import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.LookupTimeOptions;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.options.LookupTimeListOptions;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.options.LookupTimeOptions;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.result.PlayerName;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.result.PlayerTimeEntries;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.result.PlayerTimeResult;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.Request;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.Response;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packets.AFKChange;
@@ -188,7 +189,7 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
 
         } else if (request instanceof AFKChange) {
             AFKChange req = (AFKChange) request;
-            AFKState state = req.toBungeeAFKState();
+            AFKState state = req.getAFKState();
             ProxiedPlayer player = getProxy().getPlayer(req.getPlayerId());
             if (player == null) {
                 getLogger().warning("Player '" + req.getPlayerId() + "' not found");

@@ -1,4 +1,4 @@
-package com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result;
+package com.gmail.necnionch.myplugin.bungeeplaytime.common.database.result;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -31,19 +31,17 @@ public class PlayerTimeEntries {
                     .collect(Collectors.toCollection(Sets::newConcurrentHashSet));
             Map<UUID, Optional<String>> names = Maps.newConcurrentMap();
 
-            entries.forEach(e -> {
-                lookup.fetchPlayerName(e.getPlayerId())
-                        .whenComplete((name, ex) -> {
-                            waited.remove(e.getPlayerId());
-                            if (ex == null) {
-                                names.put(e.getPlayerId(), name.map(PlayerName::getName));
-                            }
+            entries.forEach(e -> lookup.fetchPlayerName(e.getPlayerId())
+                    .whenComplete((name, ex) -> {
+                        waited.remove(e.getPlayerId());
+                        if (ex == null) {
+                            names.put(e.getPlayerId(), name.map(PlayerName::getName));
+                        }
 
-                            if (waited.isEmpty()) {
-                                f.complete(names);
-                            }
-                        });
-            });
+                        if (waited.isEmpty()) {
+                            f.complete(names);
+                        }
+                    }));
         }
         return f;
     }

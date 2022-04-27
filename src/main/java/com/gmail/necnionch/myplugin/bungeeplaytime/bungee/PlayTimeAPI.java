@@ -1,10 +1,10 @@
 package com.gmail.necnionch.myplugin.bungeeplaytime.bungee;
 
-import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.PlayerName;
-import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.PlayerTimeEntries;
-import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.PlayerTimeResult;
-import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.LookupTimeListOptions;
-import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.LookupTimeOptions;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.options.LookupTimeListOptions;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.options.LookupTimeOptions;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.result.PlayerName;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.result.PlayerTimeEntries;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.result.PlayerTimeResult;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;

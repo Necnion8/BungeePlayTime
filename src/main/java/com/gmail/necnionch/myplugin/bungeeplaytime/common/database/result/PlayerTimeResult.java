@@ -1,6 +1,6 @@
-package com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result;
+package com.gmail.necnionch.myplugin.bungeeplaytime.common.database.result;
 
-import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.AFKState;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.AFKState;
 
 import java.util.UUID;
 

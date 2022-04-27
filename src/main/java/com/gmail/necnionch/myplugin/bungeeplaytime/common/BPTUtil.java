@@ -8,6 +8,7 @@ import java.util.Date;
 public class BPTUtil {
     public static final String MESSAGE_CHANNEL_AFK_STATE = "bptime:afkstate";
     public static final String MESSAGE_CHANNEL_DATA = "bptime:data";
+    private static boolean playedInUnknownState;
 
     public static String formatEpochTime(long epoch) {
         return new SimpleDateFormat("yyyy年 M月 d日").format(new Date(epoch));
@@ -20,6 +21,14 @@ public class BPTUtil {
         int minutes = (int) offset / 60;
         return ((hours > 0) ? ChatColor.GOLD.toString() + hours + ChatColor.GRAY + "時間 " : "")
                 + ChatColor.GOLD + minutes + ChatColor.GRAY + "分";
+    }
+
+    public static boolean isPlayedInUnknownState() {
+        return playedInUnknownState;
+    }
+
+    public static void setPlayedInUnknownState(boolean played) {
+        playedInUnknownState = played;
     }
 
 

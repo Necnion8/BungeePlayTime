@@ -1,8 +1,6 @@
 package com.gmail.necnionch.myplugin.bungeeplaytime.bungee.commands;
 
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.BungeePlayTime;
-import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.PlayerName;
-import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.result.PlayerTimeResult;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.BPTUtil;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.command.ChildCommand;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.command.CommandBungee;
@@ -10,7 +8,9 @@ import com.gmail.necnionch.myplugin.bungeeplaytime.common.command.CommandSender;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.command.RootCommand;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.command.errors.CommandError;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.command.errors.NotFoundCommandError;
-import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.LookupTimeOptions;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.options.LookupTimeOptions;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.result.PlayerName;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.result.PlayerTimeResult;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.config.ServerInfo;
