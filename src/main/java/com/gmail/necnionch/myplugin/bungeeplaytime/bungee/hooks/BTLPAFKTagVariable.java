@@ -5,7 +5,6 @@ import codecrafter47.bungeetablistplus.api.bungee.BungeeTabListPlusAPI;
 import codecrafter47.bungeetablistplus.api.bungee.Variable;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.BungeePlayTime;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.PlayerTime;
-import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
 
 import java.lang.reflect.Field;
@@ -25,7 +24,7 @@ public class BTLPAFKTagVariable extends Variable {
     @Override
     public String getReplacement(ProxiedPlayer player) {
         Optional<PlayerTime> time = owner.getPlayer(player.getUniqueId());
-        return (time.isPresent() && time.get().isAFK()) ? ChatColor.GRAY + "AFK" : "";
+        return (time.isPresent() && time.get().isAFK()) ? "AFK" : "";
     }
 
 

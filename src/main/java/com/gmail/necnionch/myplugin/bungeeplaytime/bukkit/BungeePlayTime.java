@@ -17,6 +17,7 @@ public class BungeePlayTime extends JavaPlugin implements Listener {
     private BukkitDataMessenger messenger;
     private final AFKPlusBridge afkPlusBridge = new AFKPlusBridge(this);
     private boolean playedInUnknownState;
+    private int afkMinutes = 5;
 
     @Override
     public void onEnable() {
@@ -61,6 +62,10 @@ public class BungeePlayTime extends JavaPlugin implements Listener {
         return playedInUnknownState;
     }
 
+    public int getAFKMinutes() {
+        return afkMinutes;
+    }
+
     private void onConnect() {
         getServer().getOnlinePlayers()
                 .forEach(p -> {
@@ -78,6 +83,7 @@ public class BungeePlayTime extends JavaPlugin implements Listener {
         } else if (request instanceof SettingChange) {
             SettingChange req = (SettingChange) request;
             playedInUnknownState = req.isPlayedInUnknown();
+            afkMinutes = req.getAFKMinutes();
         }
 
     }

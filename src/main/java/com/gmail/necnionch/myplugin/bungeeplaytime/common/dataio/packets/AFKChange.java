@@ -12,14 +12,26 @@ public class AFKChange extends Request<AFKChangeResponse> {
     public static final String KEY = "afk_change";
     private final UUID playerId;
     private final int afkState;
+    private final long startTime;
 
     public AFKChange(UUID playerId, int afkState) {
         this.playerId = playerId;
         this.afkState = afkState;
+        this.startTime = -1;
+    }
+
+    public AFKChange(UUID playerId, int afkState, long startTime) {
+        this.playerId = playerId;
+        this.afkState = afkState;
+        this.startTime = startTime;
     }
 
     public static AFKChange fromBukkit(UUID playerId, AFKState state) {
         return new AFKChange(playerId, state.getValue());
+    }
+
+    public static AFKChange fromBukkit(UUID playerId, AFKState state, long startTime) {
+        return new AFKChange(playerId, state.getValue(), startTime);
     }
 
     public UUID getPlayerId() {
@@ -28,6 +40,10 @@ public class AFKChange extends Request<AFKChangeResponse> {
 
     public com.gmail.necnionch.myplugin.bungeeplaytime.bungee.AFKState toBungeeAFKState() {
         return com.gmail.necnionch.myplugin.bungeeplaytime.bungee.AFKState.valueOrNoneOf(afkState);
+    }
+
+    public long getStartTime() {
+        return startTime;
     }
 
     @Override
@@ -39,6 +55,7 @@ public class AFKChange extends Request<AFKChangeResponse> {
     public void serialize(ByteArrayDataOutput output) {
         output.writeUTF(playerId.toString());
         output.writeInt(afkState);
+        output.writeLong(startTime);
     }
 
 
@@ -50,7 +67,7 @@ public class AFKChange extends Request<AFKChangeResponse> {
 
         @Override
         public AFKChange handleRequest(ByteArrayDataInput input) {
-            return new AFKChange(UUID.fromString(input.readUTF()), input.readInt());
+            return new AFKChange(UUID.fromString(input.readUTF()), input.readInt(), input.readLong());
         }
 
         @Override

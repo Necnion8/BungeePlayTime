@@ -34,6 +34,10 @@ public class MainConfig extends BungeeConfigDriver {
             return get().getBoolean("played-in-unknown-state");
         }
 
+        public int getAFKMinutes() {
+            return Math.max(1, get().getInt("afk-minutes", 5));
+        }
+
     }
 
     public final class Database extends ChildSection {

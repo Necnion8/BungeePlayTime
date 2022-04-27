@@ -27,8 +27,6 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 
-//TODO: Last Join date command
-
 
 public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeDataMessenger.RequestListener {
     private static BungeePlayTime instance;
@@ -63,7 +61,7 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
         messenger = BungeeDataMessenger.register(this, BPTUtil.MESSAGE_CHANNEL_DATA, this);
         messenger.updateServerMessengers();
 
-        getProxy().getPlayers().forEach(p ->  // todo: replace waitFor check
+        getProxy().getPlayers().forEach(p ->
                 insertPlayer(p, System.currentTimeMillis(), p.getServer().getInfo().getName(), AFKState.UNKNOWN));
 
         // events
@@ -143,12 +141,10 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
         if (players.containsKey(uniqueId)) {
             // commit
             PlayerTime playerTime = players.get(uniqueId);
-            long time = System.currentTimeMillis() - playerTime.getStartTime();
+            long time = Math.max(0, startTime - playerTime.getStartTime());
             putPlayerTime(playerTime, time);
         }
         players.put(uniqueId, new PlayerTime(player, startTime, server, state));
-        getLogger().warning(player.getName() + " afk state: " + state);
-
     }
 
     public void removePlayer(UUID player) {
@@ -195,8 +191,8 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
                 getLogger().warning("Player '" + req.getPlayerId() + "' not found");
                 return;
             }
-            getLogger().info("change afk " + player.getName() + " -> "+ state);
-            insertPlayer(player, System.currentTimeMillis(), messenger.getServerInfo().getName(), state);
+            long startTime = (req.getStartTime() > 0) ? req.getStartTime() : System.currentTimeMillis();
+            insertPlayer(player, startTime, messenger.getServerInfo().getName(), state);
         }
 
     }
@@ -207,12 +203,19 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
     }
 
     public void sendSettingAll() {
-        SettingChange setting = new SettingChange(mainConfig.getPlayers().isPlayedInUnknownState());
+        SettingChange setting = createSettingSend();
         messenger.actives().forEach(msg -> msg.send(setting));
     }
 
     public void sendSetting(ServerMessenger messenger) {
-        messenger.send(new SettingChange(mainConfig.getPlayers().isPlayedInUnknownState()));
+        messenger.send(createSettingSend());
+    }
+
+    private SettingChange createSettingSend() {
+        return new SettingChange(
+                mainConfig.getPlayers().isPlayedInUnknownState(),
+                mainConfig.getPlayers().getAFKMinutes()
+        );
     }
 
     // apis
