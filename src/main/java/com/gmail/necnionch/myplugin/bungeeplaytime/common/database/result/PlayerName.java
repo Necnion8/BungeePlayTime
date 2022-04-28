@@ -1,5 +1,8 @@
 package com.gmail.necnionch.myplugin.bungeeplaytime.common.database.result;
 
+import com.google.common.io.ByteArrayDataInput;
+import com.google.common.io.ByteArrayDataOutput;
+
 import java.util.UUID;
 
 public class PlayerName {
@@ -18,6 +21,16 @@ public class PlayerName {
 
     public String getName() {
         return name;
+    }
+
+
+    public void serializeTo(ByteArrayDataOutput output) {
+        output.writeUTF(uniqueId.toString());
+        output.writeUTF(name);
+    }
+
+    public static PlayerName deserializeFrom(ByteArrayDataInput input) {
+        return new PlayerName(UUID.fromString(input.readUTF()), input.readUTF());
     }
 
 }

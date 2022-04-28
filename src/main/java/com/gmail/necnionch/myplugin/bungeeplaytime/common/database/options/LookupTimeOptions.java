@@ -1,13 +1,16 @@
 package com.gmail.necnionch.myplugin.bungeeplaytime.common.database.options;
 
+import com.google.common.io.ByteArrayDataInput;
+import com.google.common.io.ByteArrayDataOutput;
+
 import java.util.Optional;
 import java.util.OptionalLong;
 
 public class LookupTimeOptions {
 
-    private boolean totalTime;
-    private String serverName;
-    private long afters;
+    protected boolean totalTime;
+    protected String serverName;
+    protected long afters;
 
     public LookupTimeOptions() {}
 
@@ -43,6 +46,20 @@ public class LookupTimeOptions {
     public LookupTimeOptions afters(long afters) {
         this.afters = afters;
         return this;
+    }
+
+
+    public void serializeTo(ByteArrayDataOutput output) {
+        output.writeBoolean(totalTime);
+        output.writeUTF((serverName != null) ? serverName : "");
+        output.writeLong(afters);
+    }
+
+    public static LookupTimeOptions deserializeFrom(ByteArrayDataInput input) {
+        boolean totalTime = input.readBoolean();
+        String serverName = input.readUTF();
+        long afters = input.readLong();
+        return new LookupTimeOptions(totalTime, (serverName.isEmpty()) ? null : serverName, afters);
     }
 
 }

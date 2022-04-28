@@ -29,6 +29,13 @@ public class BukkitDataMessenger extends DataMessenger implements PluginMessageL
         registerHandler(new AFKChangeResponse.Handler());
         registerHandler(new AFKChangeRequest.Handler());
         registerHandler(new SettingChange.Handler());
+
+        registerHandler(new GetPlayerTimeResponse.Handler());
+        registerHandler(new GetPlayerTimeEntriesResponse.Handler());
+        registerHandler(new GetPlayerTimeRankingResponse.Handler());
+        registerHandler(new GetPlayerFirstTimeResponse.Handler());
+        registerHandler(new GetPlayerLastTimeResponse.Handler());
+        registerHandler(new GetPlayerNameResponse.Handler());
     }
 
     public static BukkitDataMessenger register(Plugin owner, String channelName, RequestListener listener) {

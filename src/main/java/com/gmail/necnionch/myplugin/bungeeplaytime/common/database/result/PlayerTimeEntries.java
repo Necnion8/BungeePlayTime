@@ -1,7 +1,10 @@
 package com.gmail.necnionch.myplugin.bungeeplaytime.common.database.result;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.common.io.ByteArrayDataInput;
+import com.google.common.io.ByteArrayDataOutput;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -49,6 +52,21 @@ public class PlayerTimeEntries {
 
     public interface NameLookup {
         CompletableFuture<Optional<PlayerName>> fetchPlayerName(UUID playerId);
+    }
+
+
+    public void serializeTo(ByteArrayDataOutput output) {
+        output.writeInt(entries.size());
+        entries.forEach(r -> r.serializeTo(output));
+    }
+
+    public static PlayerTimeEntries deserializeFrom(ByteArrayDataInput input) {
+        int count = input.readInt();
+        List<PlayerTimeResult> entries = Lists.newArrayList();
+        for (int i = 0; i < count; i++) {
+            entries.add(PlayerTimeResult.deserializeFrom(input));
+        }
+        return new PlayerTimeEntries(entries);
     }
 
 }

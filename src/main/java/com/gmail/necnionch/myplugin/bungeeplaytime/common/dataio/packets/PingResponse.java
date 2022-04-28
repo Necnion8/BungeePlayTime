@@ -1,7 +1,7 @@
 package com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packets;
 
-import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.RequestHandler;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.Response;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.ResponseHandler;
 import com.google.common.io.ByteArrayDataInput;
 import com.google.common.io.ByteArrayDataOutput;
 
@@ -15,7 +15,7 @@ public class PingResponse extends Response {
     public void serialize(ByteArrayDataOutput output) {}
 
 
-    public static class Handler extends RequestHandler<PingRequest, PingResponse> {
+    public static class Handler extends ResponseHandler<PingResponse> {
 
         @Override
         public String getDataKey() {
@@ -23,12 +23,7 @@ public class PingResponse extends Response {
         }
 
         @Override
-        public PingRequest handleRequest(ByteArrayDataInput input) {
-            return new PingRequest();
-        }
-
-        @Override
-        public PingResponse processRequest(PingRequest request) {
+        public PingResponse handleResponse(ByteArrayDataInput input) {
             return new PingResponse();
         }
 

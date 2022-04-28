@@ -260,7 +260,7 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
 
     @Override
     public CompletableFuture<Optional<PlayerTimeResult>> lookupTime(UUID playerId) {
-        return lookupTime(playerId, new LookupTimeOptions().totalTime(false));
+        return lookupTime(playerId, new LookupTimeOptions());
     }
 
     @Override
@@ -296,12 +296,12 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
     }
 
     @Override
-    public CompletableFuture<OptionalLong> lookupFirstTime(UUID playerId) {
+    public CompletableFuture<OptionalLong> lookupFirstTime(UUID playerId, LookupTimeOptions options) {
         CompletableFuture<OptionalLong> f = new CompletableFuture<>();
 
         getProxy().getScheduler().runAsync(this, () -> {
             try {
-                OptionalLong firstTime = database.lookupFirstTime(playerId);
+                OptionalLong firstTime = database.lookupFirstTime(playerId);  // todo apply opions
                 f.complete(firstTime);
             } catch (SQLException e) {
                 getLogger().log(Level.SEVERE, "Exception in lookupFirstTime", e);
@@ -312,12 +312,12 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
     }
 
     @Override
-    public CompletableFuture<OptionalLong> lookupLastTime(UUID playerId) {
+    public CompletableFuture<OptionalLong> lookupLastTime(UUID playerId, LookupTimeOptions options) {
         CompletableFuture<OptionalLong> f = new CompletableFuture<>();
 
         getProxy().getScheduler().runAsync(this, () -> {
             try {
-                OptionalLong lastTime = database.lookupLastTime(playerId);
+                OptionalLong lastTime = database.lookupLastTime(playerId);  // todo apply options
                 f.complete(lastTime);
             } catch (SQLException e) {
                 getLogger().log(Level.SEVERE, "Exception in lookupLastTime", e);

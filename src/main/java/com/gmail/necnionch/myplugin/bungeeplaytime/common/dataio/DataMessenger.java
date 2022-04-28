@@ -181,11 +181,29 @@ public abstract class DataMessenger {
             } catch (Throwable e) {
                 logger.log(Level.WARNING, "Exception in onRequest() handling (dataKey: " + dataKey + ") (ignored it)", e);
             }
-            Res response = handler.processRequest(request);
 
-            ByteArrayDataOutput output = createPacket(SendType.RESPONSE, reqId, response.getDataKey());
-            response.serialize(output);
-            writeOut(output.toByteArray());
+            handler.processRequest(request).whenComplete((ret, err) -> {
+                try {
+                    if (err == null) {
+                        ByteArrayDataOutput output = createPacket(SendType.RESPONSE, reqId, ret.getDataKey());
+                        ret.serialize(output);
+                        writeOut(output.toByteArray());
+                        return;
+                    }
+                } catch (Throwable throwable) {
+                    err = throwable;
+                }
+
+                try {
+                    ByteArrayDataOutput output = createPacket(SendType.RESPONSE_ERROR, reqId, dataKey);
+                    output.writeUTF("handleError");
+                    writeOut(output.toByteArray());
+                    logger.log(Level.WARNING, "Exception in request handling (dataKey: " + dataKey + ")", err);
+
+                } catch (Throwable e) {
+                    e.printStackTrace();
+                }
+            });
 
         } catch (Throwable e) {
             ByteArrayDataOutput output = createPacket(SendType.RESPONSE_ERROR, reqId, dataKey);

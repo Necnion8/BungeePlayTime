@@ -125,8 +125,8 @@ public class MainCommand extends RootCommand {
         ComponentBuilder b = new ComponentBuilder();
 
         Consumer<PlayerName> foundName = (playerName) -> {
-            CompletableFuture<OptionalLong> firstTimeFuture = plugin.lookupFirstTime(playerName.getUniqueId());
-            CompletableFuture<OptionalLong> lastTimeFuture = plugin.lookupLastTime(playerName.getUniqueId());
+            CompletableFuture<OptionalLong> firstTimeFuture = plugin.lookupFirstTime(playerName.getUniqueId(), new LookupTimeOptions());
+            CompletableFuture<OptionalLong> lastTimeFuture = plugin.lookupLastTime(playerName.getUniqueId(), new LookupTimeOptions());
             CompletableFuture<Optional<PlayerTimeResult>> timeFuture = plugin.lookupTime(playerName.getUniqueId());
             CompletableFuture<OptionalInt> rankingFuture = plugin.lookupTimeRanking(playerName.getUniqueId(), new LookupTimeOptions().totalTime(false));
 

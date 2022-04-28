@@ -1,5 +1,6 @@
 package com.gmail.necnionch.myplugin.bungeeplaytime.bungee.dataio;
 
+import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.PlayTimeAPI;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.DataMessenger;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.Request;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.Response;
@@ -120,15 +121,24 @@ public class BungeeDataMessenger implements Listener {
         return null;
     }
 
-    private ServerMessenger createMessenger(ServerInfo serverInfo) {
+    private void createMessenger(ServerInfo serverInfo) {
         ServerMessenger messenger = new ServerMessenger(this, serverInfo, listener);
+
         messenger.registerHandler(new PingRequest.Handler());
         messenger.registerHandler(new PingResponse.Handler());
         messenger.registerHandler(new AFKChange.Handler());
         messenger.registerHandler(new AFKChangeResponse.Handler());
         messenger.registerHandler(new SettingChangeResponse.Handler());
+
+        PlayTimeAPI api = ((PlayTimeAPI) plugin);
+        messenger.registerHandler(new GetPlayerTimeRequest.Handler(api));
+        messenger.registerHandler(new GetPlayerTimeEntriesRequest.Handler(api));
+        messenger.registerHandler(new GetPlayerTimeRankingRequest.Handler(api));
+        messenger.registerHandler(new GetPlayerFirstTimeRequest.Handler(api));
+        messenger.registerHandler(new GetPlayerLastTimeRequest.Handler(api));
+        messenger.registerHandler(new GetPlayerNameRequest.Handler(api));
+
         messengers.put(serverInfo.getName(), messenger);
-        return messenger;
     }
 
     private TaskScheduler getScheduler() {

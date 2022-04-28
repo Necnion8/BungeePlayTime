@@ -5,6 +5,8 @@ import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.RequestH
 import com.google.common.io.ByteArrayDataInput;
 import com.google.common.io.ByteArrayDataOutput;
 
+import java.util.concurrent.CompletableFuture;
+
 public class SettingChange extends Request<SettingChangeResponse> {
     public static final String KEY = "setting_change";
     private final boolean playedInUnknown;
@@ -48,8 +50,8 @@ public class SettingChange extends Request<SettingChangeResponse> {
         }
 
         @Override
-        public SettingChangeResponse processRequest(SettingChange request) {
-            return new SettingChangeResponse();
+        public CompletableFuture<SettingChangeResponse> processRequest(SettingChange request) {
+            return CompletableFuture.completedFuture(new SettingChangeResponse());
         }
     }
 

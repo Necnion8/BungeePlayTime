@@ -1,4 +1,4 @@
-package com.gmail.necnionch.myplugin.bungeeplaytime.bungee;
+package com.gmail.necnionch.myplugin.bungeeplaytime.bukkit;
 
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.options.LookupTimeListOptions;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.options.LookupTimeOptions;
@@ -6,15 +6,14 @@ import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.result.Player
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.result.PlayerTimeEntries;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.result.PlayerTimeResult;
 
-import java.util.*;
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 
 public interface PlayTimeAPI {
-    Collection<PlayerTime> getPlayers();
-
-    Optional<PlayerTime> getPlayer(UUID playerId);
-
 
     CompletableFuture<Optional<PlayerTimeResult>> lookupTime(UUID playerId, LookupTimeOptions options);
 

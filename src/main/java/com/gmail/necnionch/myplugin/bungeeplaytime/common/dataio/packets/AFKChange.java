@@ -7,6 +7,7 @@ import com.google.common.io.ByteArrayDataInput;
 import com.google.common.io.ByteArrayDataOutput;
 
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public class AFKChange extends Request<AFKChangeResponse> {
     public static final String KEY = "afk_change";
@@ -63,8 +64,8 @@ public class AFKChange extends Request<AFKChangeResponse> {
         }
 
         @Override
-        public AFKChangeResponse processRequest(AFKChange request) {
-            return new AFKChangeResponse();
+        public CompletableFuture<AFKChangeResponse> processRequest(AFKChange request) {
+            return CompletableFuture.completedFuture(new AFKChangeResponse());
         }
     }
 

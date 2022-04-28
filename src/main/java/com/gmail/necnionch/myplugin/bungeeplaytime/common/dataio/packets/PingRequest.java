@@ -1,9 +1,11 @@
 package com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packets;
 
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.Request;
-import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.ResponseHandler;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.RequestHandler;
 import com.google.common.io.ByteArrayDataInput;
 import com.google.common.io.ByteArrayDataOutput;
+
+import java.util.concurrent.CompletableFuture;
 
 public class PingRequest extends Request<PingResponse> {
     public static final String KEY = "ping";
@@ -17,7 +19,7 @@ public class PingRequest extends Request<PingResponse> {
     public void serialize(ByteArrayDataOutput output) {}
 
 
-    public static class Handler extends ResponseHandler<PingResponse> {
+    public static class Handler extends RequestHandler<PingRequest, PingResponse> {
 
         @Override
         public String getDataKey() {
@@ -25,8 +27,13 @@ public class PingRequest extends Request<PingResponse> {
         }
 
         @Override
-        public PingResponse handleResponse(ByteArrayDataInput input) {
-            return new PingResponse();
+        public PingRequest handleRequest(ByteArrayDataInput input) {
+            return new PingRequest();
+        }
+
+        @Override
+        public CompletableFuture<PingResponse> processRequest(PingRequest request) {
+            return CompletableFuture.completedFuture(new PingResponse());
         }
 
     }
