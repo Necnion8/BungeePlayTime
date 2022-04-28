@@ -294,12 +294,17 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
     }
 
     @Override
+    public CompletableFuture<OptionalInt> lookupTimeRanking(UUID playerId) {
+        return lookupTimeRanking(playerId, new LookupTimeOptions());
+    }
+
+    @Override
     public CompletableFuture<OptionalLong> lookupFirstTime(UUID playerId, LookupTimeOptions options) {
         CompletableFuture<OptionalLong> f = new CompletableFuture<>();
 
         getProxy().getScheduler().runAsync(this, () -> {
             try {
-                OptionalLong firstTime = database.lookupFirstTime(playerId);  // todo apply opions
+                OptionalLong firstTime = database.lookupFirstTime(playerId, options);
                 f.complete(firstTime);
             } catch (SQLException e) {
                 getLogger().log(Level.SEVERE, "Exception in lookupFirstTime", e);
@@ -310,12 +315,17 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
     }
 
     @Override
+    public CompletableFuture<OptionalLong> lookupFirstTime(UUID playerId) {
+        return lookupFirstTime(playerId, new LookupTimeOptions());
+    }
+
+    @Override
     public CompletableFuture<OptionalLong> lookupLastTime(UUID playerId, LookupTimeOptions options) {
         CompletableFuture<OptionalLong> f = new CompletableFuture<>();
 
         getProxy().getScheduler().runAsync(this, () -> {
             try {
-                OptionalLong lastTime = database.lookupLastTime(playerId);  // todo apply options
+                OptionalLong lastTime = database.lookupLastTime(playerId, options);
                 f.complete(lastTime);
             } catch (SQLException e) {
                 getLogger().log(Level.SEVERE, "Exception in lookupLastTime", e);
@@ -325,6 +335,10 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
         return f;
     }
 
+    @Override
+    public CompletableFuture<OptionalLong> lookupLastTime(UUID playerId) {
+        return lookupLastTime(playerId, new LookupTimeOptions());
+    }
 
     @Override
     public CompletableFuture<Optional<PlayerName>> fetchPlayerName(UUID playerId) {

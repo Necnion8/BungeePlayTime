@@ -23,9 +23,15 @@ public interface PlayTimeAPI {
 
     CompletableFuture<OptionalInt> lookupTimeRanking(UUID playerId, LookupTimeOptions options);
 
+    CompletableFuture<OptionalInt> lookupTimeRanking(UUID playerId);
+
     CompletableFuture<OptionalLong> lookupFirstTime(UUID playerId, LookupTimeOptions options);
 
+    CompletableFuture<OptionalLong> lookupFirstTime(UUID playerId);
+
     CompletableFuture<OptionalLong> lookupLastTime(UUID playerId, LookupTimeOptions options);
+
+    CompletableFuture<OptionalLong> lookupLastTime(UUID playerId);
 
 
     CompletableFuture<Optional<PlayerName>> fetchPlayerName(UUID playerId);

@@ -161,6 +161,11 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
     }
 
     @Override
+    public CompletableFuture<OptionalInt> lookupTimeRanking(UUID playerId) {
+        return lookupTimeRanking(playerId, new com.gmail.necnionch.myplugin.bungeeplaytime.bukkit.database.options.LookupTimeListOptions().currentServer());
+    }
+
+    @Override
     public CompletableFuture<OptionalLong> lookupFirstTime(UUID playerId, LookupTimeOptions options) {
         CompletableFuture<OptionalLong> f = new CompletableFuture<>();
         messenger.send(new GetPlayerFirstTimeRequest(playerId, options), 3000).whenComplete((ret, err) -> {
@@ -174,6 +179,11 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
     }
 
     @Override
+    public CompletableFuture<OptionalLong> lookupFirstTime(UUID playerId) {
+        return lookupFirstTime(playerId, new com.gmail.necnionch.myplugin.bungeeplaytime.bukkit.database.options.LookupTimeListOptions().currentServer());
+    }
+
+    @Override
     public CompletableFuture<OptionalLong> lookupLastTime(UUID playerId, LookupTimeOptions options) {
         CompletableFuture<OptionalLong> f = new CompletableFuture<>();
         messenger.send(new GetPlayerLastTimeRequest(playerId, options), 3000).whenComplete((ret, err) -> {
@@ -184,6 +194,11 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
             }
         });
         return f;
+    }
+
+    @Override
+    public CompletableFuture<OptionalLong> lookupLastTime(UUID playerId) {
+        return lookupLastTime(playerId, new com.gmail.necnionch.myplugin.bungeeplaytime.bukkit.database.options.LookupTimeOptions().currentServer());
     }
 
     @Override
