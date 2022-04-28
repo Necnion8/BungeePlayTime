@@ -11,10 +11,12 @@ public class SettingChange extends Request<SettingChangeResponse> {
     public static final String KEY = "setting_change";
     private final boolean playedInUnknown;
     private final int afkMinutes;
+    private final String serverName;
 
-    public SettingChange(boolean playedInUnknown, int afkMinutes) {
+    public SettingChange(boolean playedInUnknown, int afkMinutes, String serverName) {
         this.playedInUnknown = playedInUnknown;
         this.afkMinutes = afkMinutes;
+        this.serverName = serverName;
     }
 
     public boolean isPlayedInUnknown() {
@@ -23,6 +25,10 @@ public class SettingChange extends Request<SettingChangeResponse> {
 
     public int getAFKMinutes() {
         return afkMinutes;
+    }
+
+    public String getServerName() {
+        return serverName;
     }
 
     @Override
@@ -46,7 +52,7 @@ public class SettingChange extends Request<SettingChangeResponse> {
 
         @Override
         public SettingChange handleRequest(ByteArrayDataInput input) {
-            return new SettingChange(input.readBoolean(), input.readInt());
+            return new SettingChange(input.readBoolean(), input.readInt(), input.readUTF());
         }
 
         @Override

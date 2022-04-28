@@ -32,4 +32,9 @@ public interface PlayTimeAPI {
 
     CompletableFuture<Optional<PlayerName>> fetchPlayerId(String playerName);
 
+
+    boolean isBungeeConnected();
+
+    String getServerNameInBungee();
+
 }

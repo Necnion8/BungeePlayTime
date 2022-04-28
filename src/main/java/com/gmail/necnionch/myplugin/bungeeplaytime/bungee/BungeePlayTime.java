@@ -34,11 +34,11 @@ import java.util.logging.Level;
 
 
 public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeDataMessenger.RequestListener {
+    private static PlayTimeAPI api;
     private final MainConfig mainConfig = new MainConfig(this);
     private Database database;
     private final Map<UUID, PlayerTime> players = Maps.newConcurrentMap();
     private BungeeDataMessenger messenger;
-
 
     @Override
     public void onLoad() {
@@ -54,6 +54,8 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
 
     @Override
     public void onEnable() {
+        api = this;
+
         // config
         mainConfig.load();
 
@@ -107,6 +109,11 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
             }
         }
     }
+
+    public static PlayTimeAPI getAPI() {
+        return Objects.requireNonNull(api, "Plugin is not initialized");
+    }
+
 
     public MainConfig getMainConfig() {
         return mainConfig;
@@ -202,19 +209,15 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
     }
 
     public void sendSettingAll() {
-        SettingChange setting = createSettingSend();
-        messenger.actives().forEach(msg -> msg.send(setting));
+        messenger.actives().forEach(this::sendSetting);
     }
 
     public void sendSetting(ServerMessenger messenger) {
-        messenger.send(createSettingSend());
-    }
-
-    private SettingChange createSettingSend() {
-        return new SettingChange(
+        messenger.send(new SettingChange(
                 mainConfig.getPlayers().isPlayedInUnknownState(),
-                mainConfig.getPlayers().getAFKMinutes()
-        );
+                mainConfig.getPlayers().getAFKMinutes(),
+                messenger.getServerInfo().getName()
+        ));
     }
 
     public void sendAFKChangeRequest(ProxiedPlayer player, boolean afk) {

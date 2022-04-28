@@ -16,7 +16,7 @@ public class PlayerListener implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        plugin.setBungeeConnected(false);
+        plugin.onEmptyPlayers();
     }
 
 }

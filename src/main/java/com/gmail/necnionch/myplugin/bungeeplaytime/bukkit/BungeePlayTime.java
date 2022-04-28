@@ -15,21 +15,21 @@ import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.Response
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packets.*;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.Optional;
-import java.util.OptionalInt;
-import java.util.OptionalLong;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 
 public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
+    private static PlayTimeAPI api;
     private BukkitDataMessenger messenger;
     private final AFKPlusBridge afkPlusBridge = new AFKPlusBridge(this);
     private int afkMinutes = 5;
     private boolean bungeeConnected;
+    private String currentServerName;
 
     @Override
     public void onEnable() {
+        api = this;
         // events
         getServer().getPluginManager().registerEvents(new PlayerListener(this), this);
 
@@ -57,6 +57,11 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
         afkPlusBridge.unhook();
     }
 
+    public static PlayTimeAPI getAPI() {
+        return Objects.requireNonNull(api, "Plugin is not initialized");
+    }
+
+
     public BukkitDataMessenger getMessenger() {
         return messenger;
     }
@@ -65,14 +70,10 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
         return afkMinutes;
     }
 
-    public boolean isBungeeConnected() {
-        return bungeeConnected;
+    public void onEmptyPlayers() {
+        bungeeConnected = false;
+        currentServerName = null;
     }
-
-    public void setBungeeConnected(boolean bungeeConnected) {
-        this.bungeeConnected = bungeeConnected;
-    }
-
 
     private void onConnect() {
         bungeeConnected = true;
@@ -98,8 +99,20 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
             SettingChange req = (SettingChange) request;
             BPTUtil.setPlayedInUnknownState(req.isPlayedInUnknown());
             afkMinutes = req.getAFKMinutes();
+            currentServerName = req.getServerName();
         }
 
+    }
+
+
+    @Override
+    public boolean isBungeeConnected() {
+        return bungeeConnected;
+    }
+
+    @Override
+    public String getServerNameInBungee() {
+        return currentServerName;
     }
 
 
@@ -118,7 +131,7 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
 
     @Override
     public CompletableFuture<Optional<PlayerTimeResult>> lookupTime(UUID playerId) {
-        return lookupTime(playerId, new LookupTimeListOptions());
+        return lookupTime(playerId, new com.gmail.necnionch.myplugin.bungeeplaytime.bukkit.database.options.LookupTimeOptions().currentServer());
     }
 
     @Override
