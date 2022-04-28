@@ -106,7 +106,7 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
     @Override
     public CompletableFuture<Optional<PlayerTimeResult>> lookupTime(UUID playerId, LookupTimeOptions options) {
         CompletableFuture<Optional<PlayerTimeResult>> f = new CompletableFuture<>();
-        messenger.send(new GetPlayerTimeRequest(playerId, options)).whenComplete((ret, err) -> {
+        messenger.send(new GetPlayerTimeRequest(playerId, options), 3000).whenComplete((ret, err) -> {
             if (err != null) {
                 f.completeExceptionally(err);
             } else {
@@ -124,7 +124,7 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
     @Override
     public CompletableFuture<PlayerTimeEntries> lookupTimeTops(LookupTimeListOptions options) {
         CompletableFuture<PlayerTimeEntries> f = new CompletableFuture<>();
-        messenger.send(new GetPlayerTimeEntriesRequest(options)).whenComplete((ret, err) -> {
+        messenger.send(new GetPlayerTimeEntriesRequest(options), 5000).whenComplete((ret, err) -> {
             if (err != null) {
                 f.completeExceptionally(err);
             } else {
@@ -137,7 +137,7 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
     @Override
     public CompletableFuture<OptionalInt> lookupTimeRanking(UUID playerId, LookupTimeOptions options) {
         CompletableFuture<OptionalInt> f = new CompletableFuture<>();
-        messenger.send(new GetPlayerTimeRankingRequest(playerId, options)).whenComplete((ret, err) -> {
+        messenger.send(new GetPlayerTimeRankingRequest(playerId, options), 3000).whenComplete((ret, err) -> {
             if (err != null) {
                 f.completeExceptionally(err);
             } else {
@@ -150,7 +150,7 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
     @Override
     public CompletableFuture<OptionalLong> lookupFirstTime(UUID playerId, LookupTimeOptions options) {
         CompletableFuture<OptionalLong> f = new CompletableFuture<>();
-        messenger.send(new GetPlayerFirstTimeRequest(playerId, options)).whenComplete((ret, err) -> {
+        messenger.send(new GetPlayerFirstTimeRequest(playerId, options), 3000).whenComplete((ret, err) -> {
             if (err != null) {
                 f.completeExceptionally(err);
             } else {
@@ -163,7 +163,7 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
     @Override
     public CompletableFuture<OptionalLong> lookupLastTime(UUID playerId, LookupTimeOptions options) {
         CompletableFuture<OptionalLong> f = new CompletableFuture<>();
-        messenger.send(new GetPlayerLastTimeRequest(playerId, options)).whenComplete((ret, err) -> {
+        messenger.send(new GetPlayerLastTimeRequest(playerId, options), 3000).whenComplete((ret, err) -> {
             if (err != null) {
                 f.completeExceptionally(err);
             } else {
@@ -176,7 +176,7 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
     @Override
     public CompletableFuture<Optional<PlayerName>> fetchPlayerName(UUID playerId) {
         CompletableFuture<Optional<PlayerName>> f = new CompletableFuture<>();
-        messenger.send(new GetPlayerNameRequest(playerId, null)).whenComplete((ret, err) -> {
+        messenger.send(new GetPlayerNameRequest(playerId, null), 3000).whenComplete((ret, err) -> {
             if (err != null) {
                 f.completeExceptionally(err);
             } else {
@@ -189,7 +189,7 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
     @Override
     public CompletableFuture<Optional<PlayerName>> fetchPlayerId(String playerName) {
         CompletableFuture<Optional<PlayerName>> f = new CompletableFuture<>();
-        messenger.send(new GetPlayerNameRequest(null, playerName)).whenComplete((ret, err) -> {
+        messenger.send(new GetPlayerNameRequest(null, playerName), 3000).whenComplete((ret, err) -> {
             if (err != null) {
                 f.completeExceptionally(err);
             } else {

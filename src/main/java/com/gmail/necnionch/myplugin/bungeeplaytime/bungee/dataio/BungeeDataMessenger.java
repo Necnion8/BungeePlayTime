@@ -5,6 +5,7 @@ import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.DataMessenger;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.Request;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.Response;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packets.*;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.timer.Timer;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import net.md_5.bungee.api.ProxyServer;
@@ -14,13 +15,9 @@ import net.md_5.bungee.api.event.PluginMessageEvent;
 import net.md_5.bungee.api.event.ProxyReloadEvent;
 import net.md_5.bungee.api.plugin.Listener;
 import net.md_5.bungee.api.plugin.Plugin;
-import net.md_5.bungee.api.scheduler.TaskScheduler;
 import net.md_5.bungee.event.EventHandler;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
@@ -32,14 +29,15 @@ public class BungeeDataMessenger implements Listener {
 
     private final Map<String, ServerMessenger> messengers = Maps.newConcurrentMap();
     private final Set<ServerMessenger> actives = Sets.newConcurrentHashSet();
-    private final Set<DataMessenger.Requested<PingResponse>> pingWaits = Sets.newConcurrentHashSet();
     private final RequestListener listener;
+    private final Timer timer;
 
     public BungeeDataMessenger(Plugin plugin, String channelName, RequestListener listener) {
         this.plugin = plugin;
         this.channelName = channelName;
         this.listener = listener;
         this.executor = (task) -> ProxyServer.getInstance().getScheduler().runAsync(plugin, task);
+        this.timer = Timer.createOfBungee(plugin);
     }
 
     public static BungeeDataMessenger register(Plugin plugin, String channelName, RequestListener listener) {
@@ -52,12 +50,11 @@ public class BungeeDataMessenger implements Listener {
     public void unregister() {
         plugin.getProxy().getPluginManager().unregisterListener(this);
         plugin.getProxy().unregisterChannel(channelName);
+        actives.forEach(DataMessenger::cleanup);
     }
 
 
     public void updateServerMessengers() {
-        cancelPingAll();
-
         Map<String, ServerInfo> servers = Maps.newHashMap(plugin.getProxy().getServers());
         Map<String, ServerMessenger> messengers = Maps.newHashMap(this.messengers);
 
@@ -73,6 +70,7 @@ public class BungeeDataMessenger implements Listener {
             }
         });
         messengers.values().removeAll(removed);
+        actives.forEach(DataMessenger::cleanup);
         actives.removeAll(removed);
 
         this.messengers.clear();
@@ -141,13 +139,18 @@ public class BungeeDataMessenger implements Listener {
         messengers.put(serverInfo.getName(), messenger);
     }
 
-    private TaskScheduler getScheduler() {
-        return plugin.getProxy().getScheduler();
+    public Timer getTimer() {
+        return timer;
     }
 
-
     public void removeActive(ServerInfo serverInfo) {
-        actives.removeIf(m -> m.getServerInfo().equals(serverInfo));
+        for (Iterator<ServerMessenger> it = actives.iterator(); it.hasNext(); ) {
+            ServerMessenger messenger = it.next();
+            if (messenger.getServerInfo().equals(serverInfo)) {
+                messenger.cleanup();
+                it.remove();
+            }
+        }
     }
 
     public void addActive(ServerMessenger messenger) {
@@ -172,31 +175,17 @@ public class BungeeDataMessenger implements Listener {
     public void sendPing(ServerInfo serverInfo) {
         ServerMessenger messenger = getMessenger(serverInfo);
         if (messenger != null) {
-            getScheduler().schedule(plugin, () -> sendPing(messenger), 50, TimeUnit.MILLISECONDS);
+            plugin.getProxy().getScheduler().schedule(plugin, () ->
+                    sendPing(messenger), 50, TimeUnit.MILLISECONDS);
         }
-    }
-
-    private void cancelPingAll() {
-        pingWaits.forEach(DataMessenger.Requested::cancel);
-        pingWaits.clear();
     }
 
     private void sendPing(ServerMessenger messenger) {
         actives.remove(messenger);
-        DataMessenger.Requested<PingResponse> request = messenger.send(new PingRequest());
-        pingWaits.add(request);
-
-        request.whenComplete((ret, err) -> {
+         messenger.send(new PingRequest(), 1000).whenComplete((ret, err) -> {
             if (ret != null)
                 onActiveMessenger(messenger);
-
-            pingWaits.remove(request);
         });
-
-        getScheduler().schedule(plugin, () -> {  // timeout
-            pingWaits.remove(request);
-            request.cancel();
-        }, 3, TimeUnit.SECONDS);
     }
 
     public String getChannelName() {

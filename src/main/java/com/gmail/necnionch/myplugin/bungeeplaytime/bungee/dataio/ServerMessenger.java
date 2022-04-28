@@ -11,7 +11,7 @@ public class ServerMessenger extends DataMessenger {
     private ServerInfo server;
 
     public ServerMessenger(BungeeDataMessenger parent, ServerInfo server, BungeeDataMessenger.RequestListener listener) {
-        super(parent.getLogger(), parent.getExecutor(), parent.getExecutor());
+        super(parent.getLogger(), parent.getExecutor(), parent.getExecutor(), parent.getTimer());
         this.server = server;
         this.channelName = parent.getChannelName();
         this.listener = listener;

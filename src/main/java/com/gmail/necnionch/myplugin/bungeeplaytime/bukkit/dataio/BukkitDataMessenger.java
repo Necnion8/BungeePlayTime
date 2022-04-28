@@ -4,6 +4,7 @@ import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.DataMessenger;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.Request;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.Response;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packets.*;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.timer.Timer;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -19,7 +20,7 @@ public class BukkitDataMessenger extends DataMessenger implements PluginMessageL
     private final RequestListener listener;
 
     public BukkitDataMessenger(Executor syncExecutor, Executor asyncExecutor, Plugin owner, String channelName, RequestListener listener) {
-        super(owner.getLogger(), syncExecutor, asyncExecutor);
+        super(owner.getLogger(), syncExecutor, asyncExecutor, Timer.createOfBukkit(owner));
         this.owner = owner;
         this.channelName = channelName;
         this.listener = listener;
@@ -51,6 +52,7 @@ public class BukkitDataMessenger extends DataMessenger implements PluginMessageL
     public void unregister() {
         owner.getServer().getMessenger().unregisterIncomingPluginChannel(owner, channelName, this);
         owner.getServer().getMessenger().unregisterOutgoingPluginChannel(owner, channelName);
+        cleanup();
     }
 
 

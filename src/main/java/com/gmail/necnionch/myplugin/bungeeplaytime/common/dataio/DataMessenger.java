@@ -2,12 +2,16 @@ package com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio;
 
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.errors.RemoteHandleError;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.errors.RemoteNotImplemented;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.errors.ResponseTimeoutError;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.errors.SenderError;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.Request;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.RequestHandler;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.Response;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.ResponseHandler;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.timer.ScheduledTask;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.timer.Timer;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.google.common.io.ByteArrayDataInput;
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
@@ -28,13 +32,16 @@ public abstract class DataMessenger {
     private final Executor asyncExecutor;
     private final AtomicInteger requestLastId = new AtomicInteger();
     private final Map<Integer, CompletableFuture<? extends Response>> waitTasks = Maps.newConcurrentMap();
+    private final Map<Integer, ScheduledTask> waitTaskTimes = Maps.newConcurrentMap();
     private final Logger logger;
+    private final Timer timer;
 
 
-    public DataMessenger(Logger logger, Executor syncExecutor, Executor asyncExecutor) {
+    public DataMessenger(Logger logger, Executor syncExecutor, Executor asyncExecutor, Timer timer) {
         this.logger = logger;
         this.syncExecutor = syncExecutor;
         this.asyncExecutor = asyncExecutor;
+        this.timer = timer;
     }
 
 
@@ -53,7 +60,7 @@ public abstract class DataMessenger {
     }
 
 
-    public <R extends Request<Res>, Res extends Response> Requested<Res> send(R request) {
+    public <R extends Request<Res>, Res extends Response> Requested<Res> send(R request, long timeoutMillis) {
         int reqId = requestLastId.incrementAndGet();
         CompletableFuture<Res> future = new CompletableFuture<>();
 
@@ -71,7 +78,28 @@ public abstract class DataMessenger {
             writeOut(output.toByteArray());
         });
 
+        ScheduledTask task = timer.schedule(() -> {
+            if (waitTasks.remove(reqId) == null)
+                return;
+//            logger.warning("Time-outed response (dataKey: " + request.getDataKey() + ")");
+            future.completeExceptionally(new ResponseTimeoutError());
+        }, timeoutMillis);
+        waitTaskTimes.put(reqId, task);
+
         return new Requested<>(this, reqId, future, syncExecutor);
+    }
+
+    public <R extends Request<Res>, Res extends Response> Requested<Res> send(R request) {
+        return send(request, 1000);
+    }
+
+    public void cleanup() {
+        Sets.newHashSet(waitTaskTimes.values()).forEach(ScheduledTask::cancel);
+        waitTaskTimes.clear();
+
+        Sets.newHashSet(waitTasks.values()).forEach(f ->
+                f.completeExceptionally(new SenderError("closed by messenger")));
+        waitTasks.clear();
     }
 
 
@@ -112,6 +140,7 @@ public abstract class DataMessenger {
 
 
     private <Res extends Response> void onResponse(int reqId, String dataKey, ByteArrayDataInput input) {
+        cancelTimeoutTask(reqId);
         //noinspection unchecked
         CompletableFuture<Res> future = (CompletableFuture<Res>) waitTasks.remove(reqId);
         if (future == null)
@@ -140,6 +169,7 @@ public abstract class DataMessenger {
     }
 
     private <Res extends Response> void onResponseError(int reqId, String dataKey, ByteArrayDataInput input) {
+        cancelTimeoutTask(reqId);
         //noinspection unchecked
         CompletableFuture<Res> future = (CompletableFuture<Res>) waitTasks.remove(reqId);
         if (future == null)
@@ -223,6 +253,12 @@ public abstract class DataMessenger {
         return output;
     }
 
+    private void cancelTimeoutTask(int reqId) {
+        ScheduledTask task = waitTaskTimes.remove(reqId);
+        if (task != null)
+            task.cancel();
+    }
+
 
 
     public static final class Requested<Res> {
@@ -250,6 +286,7 @@ public abstract class DataMessenger {
         }
 
         public void cancel() {
+            messenger.cancelTimeoutTask(requestId);
             messenger.waitTasks.remove(requestId);
         }
 
