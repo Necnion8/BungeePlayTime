@@ -1,6 +1,9 @@
 package com.gmail.necnionch.myplugin.bungeeplaytime.common;
 
 
+import com.google.common.io.ByteArrayDataInput;
+import com.google.common.io.ByteStreams;
+
 public enum AFKState {
     FALSE(0),
     TRUE(1),
@@ -48,6 +51,14 @@ public enum AFKState {
 
     public static boolean isPlayedInUnknownState() {
         return BPTUtil.isPlayedInUnknownState();
+    }
+
+
+    public static AFKState deserializeFromLegacy(byte[] data) {
+        //noinspection UnstableApiUsage
+        ByteArrayDataInput input = ByteStreams.newDataInput(data);
+        input.readUTF();  // playerId
+        return input.readBoolean() ? AFKState.TRUE : FALSE;
     }
 
 }

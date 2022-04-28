@@ -23,7 +23,6 @@ import java.util.concurrent.CompletableFuture;
 
 
 public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
-    private static BungeePlayTime instance;
     private BukkitDataMessenger messenger;
     private final AFKPlusBridge afkPlusBridge = new AFKPlusBridge(this);
     private int afkMinutes = 5;
@@ -31,10 +30,8 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
 
     @Override
     public void onEnable() {
-        instance = this;
         // events
         getServer().getPluginManager().registerEvents(new PlayerListener(this), this);
-        getServer().getMessenger().registerOutgoingPluginChannel(this, BPTUtil.MESSAGE_CHANNEL_AFK_STATE);
 
         // init
         messenger = BukkitDataMessenger.register(this, BPTUtil.MESSAGE_CHANNEL_DATA, this::onRequest);
@@ -58,10 +55,6 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
         messenger = null;
 
         afkPlusBridge.unhook();
-    }
-
-    public static BungeePlayTime getInstance() {
-        return instance;
     }
 
     public BukkitDataMessenger getMessenger() {

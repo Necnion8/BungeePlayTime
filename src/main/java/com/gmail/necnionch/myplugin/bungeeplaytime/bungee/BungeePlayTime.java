@@ -24,7 +24,10 @@ import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packets.PingReq
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packets.SettingChange;
 import com.google.common.collect.Maps;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
+import net.md_5.bungee.api.event.PluginMessageEvent;
+import net.md_5.bungee.api.plugin.Listener;
 import net.md_5.bungee.api.plugin.Plugin;
+import net.md_5.bungee.event.EventHandler;
 
 import java.sql.SQLException;
 import java.util.*;
@@ -33,7 +36,6 @@ import java.util.logging.Level;
 
 
 public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeDataMessenger.RequestListener {
-    private static BungeePlayTime instance;
     private final MainConfig mainConfig = new MainConfig(this);
     private Database database;
     private final Map<UUID, PlayerTime> players = Maps.newConcurrentMap();
@@ -42,7 +44,6 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
 
     @Override
     public void onLoad() {
-        instance = this;
         if (getProxy().getPluginManager().getPlugin("BungeeTabListPlus") != null) {
             getLogger().info("Registering...");
             try {
@@ -69,8 +70,17 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
                 insertPlayer(p, System.currentTimeMillis(), p.getServer().getInfo().getName(), AFKState.UNKNOWN));
 
         // events
-//        getProxy().registerChannel(BPTUtil.MESSAGE_CHANNEL_AFK_STATE);
         getProxy().getPluginManager().registerListener(this, new PlayerListener(this));
+        getProxy().registerChannel(BPTUtil.MESSAGE_CHANNEL_AFK_STATE);  // legacy v1.0 bridge
+        getProxy().getPluginManager().registerListener(this, new Listener() {
+            @EventHandler
+            public void onReceive(PluginMessageEvent event) {
+                if (BPTUtil.MESSAGE_CHANNEL_AFK_STATE.equals(event.getTag())) {
+                    ProxiedPlayer player = (ProxiedPlayer) event.getReceiver();
+                    insertPlayer(player, System.currentTimeMillis(), player.getServer().getInfo().getName(), AFKState.deserializeFromLegacy(event.getData()));
+                }
+            }
+        });
 
         // commands
         new MainCommand(this).registerCommand();
@@ -89,6 +99,7 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
         // unload
         messenger.unregister();
         messenger = null;
+        getProxy().unregisterChannel(BPTUtil.MESSAGE_CHANNEL_AFK_STATE);
 
         // hooks
         try {
@@ -96,8 +107,6 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
         } catch (Throwable e) {
             getLogger().warning("Failed to unregister BTLP Custom Variable: " + e.getMessage());
         }
-
-//        getProxy().unregisterChannel(BPTUtil.MESSAGE_CHANNEL_AFK_STATE);
 
         // database
         if (!database.isClosed()) {
@@ -115,10 +124,6 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
 
     public BungeeDataMessenger getMessenger() {
         return messenger;
-    }
-
-    public static BungeePlayTime getInstance() {
-        return instance;
     }
 
 
