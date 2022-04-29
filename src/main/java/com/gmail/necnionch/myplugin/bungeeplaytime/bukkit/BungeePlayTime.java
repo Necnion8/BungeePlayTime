@@ -88,6 +88,7 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
 
 
     private <Res extends Response> void onRequest(Request<Res> request) {
+        bungeeConnected = true;
         if (request instanceof PingRequest) {
             onConnect();
         } else if (request instanceof AFKChangeRequest) {
@@ -124,6 +125,7 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
                 f.completeExceptionally(err);
             } else {
                 f.complete(ret.getResult());
+                bungeeConnected = true;
             }
         });
         return f;
@@ -142,6 +144,7 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
                 f.completeExceptionally(err);
             } else {
                 f.complete(ret.getResult());
+                bungeeConnected = true;
             }
         });
         return f;
@@ -155,6 +158,7 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
                 f.completeExceptionally(err);
             } else {
                 f.complete(ret.getRanking());
+                bungeeConnected = true;
             }
         });
         return f;
@@ -173,6 +177,7 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
                 f.completeExceptionally(err);
             } else {
                 f.complete(ret.getFirstTime());
+                bungeeConnected = true;
             }
         });
         return f;
@@ -191,6 +196,7 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
                 f.completeExceptionally(err);
             } else {
                 f.complete(ret.getLastTime());
+                bungeeConnected = true;
             }
         });
         return f;
@@ -209,6 +215,7 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
                 f.completeExceptionally(err);
             } else {
                 f.complete(ret.getResult());
+                bungeeConnected = true;
             }
         });
         return f;
@@ -222,6 +229,7 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
                 f.completeExceptionally(err);
             } else {
                 f.complete(ret.getResult());
+                bungeeConnected = true;
             }
         });
         return f;
