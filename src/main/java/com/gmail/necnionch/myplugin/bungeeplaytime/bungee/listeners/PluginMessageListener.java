@@ -10,22 +10,18 @@ import net.md_5.bungee.event.EventHandler;
 
 public class PluginMessageListener implements Listener {
 
-    private final BungeePlayTime owner;
+    private final BungeePlayTime plugin;
 
-    public PluginMessageListener(BungeePlayTime owner) {
-        this.owner = owner;
+    public PluginMessageListener(BungeePlayTime plugin) {
+        this.plugin = plugin;
     }
 
-
     @EventHandler
-    public void onMessage(PluginMessageEvent event) {
-        if (!BPTUtil.MESSAGE_CHANNEL_AFK_STATE.equals(event.getTag()))
-            return;
-
-        ProxiedPlayer player = (ProxiedPlayer) event.getReceiver();
-        AFKState state = AFKState.deserialize(event.getData());
-        owner.insertPlayer(player, System.currentTimeMillis(), player.getServer().getInfo().getName(), state.isAfk());
-
+    public void onReceive(PluginMessageEvent event) {
+        if (BPTUtil.MESSAGE_CHANNEL_AFK_STATE.equals(event.getTag())) {
+            ProxiedPlayer player = (ProxiedPlayer) event.getReceiver();
+            plugin.insertPlayer(player, System.currentTimeMillis(), player.getServer().getInfo().getName(), AFKState.deserializeFromLegacy(event.getData()));
+        }
     }
 
 }

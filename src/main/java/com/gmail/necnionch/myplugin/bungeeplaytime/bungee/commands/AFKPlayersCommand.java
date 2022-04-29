@@ -2,6 +2,7 @@ package com.gmail.necnionch.myplugin.bungeeplaytime.bungee.commands;
 
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.BungeePlayTime;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.PlayerTime;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.BPTUtil;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.chat.ComponentBuilder;
@@ -48,7 +49,7 @@ public class AFKPlayersCommand extends Command implements TabExecutor {
             b.append(" " + name + space).color(ChatColor.GOLD);
             b.append(": ").color(ChatColor.GRAY);
 
-            b.appendLegacy(owner.formatTimeText(System.currentTimeMillis() - time.getStartTime()) + "\n");
+            b.appendLegacy(BPTUtil.formatTimeText(System.currentTimeMillis() - time.getStartTime()) + "\n");
         }
         b.append("=============================").color(ChatColor.GRAY);
         sender.sendMessage(b.create());

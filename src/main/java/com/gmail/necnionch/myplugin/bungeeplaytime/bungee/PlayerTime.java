@@ -1,5 +1,6 @@
 package com.gmail.necnionch.myplugin.bungeeplaytime.bungee;
 
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.AFKState;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
 
 
@@ -7,14 +8,14 @@ public class PlayerTime {
     private final ProxiedPlayer player;
     private final long startTime;
     private final String server;
-    private final boolean afk;
+    private final AFKState afkState;
 
 
-    public PlayerTime(ProxiedPlayer player, long startTime, String server, boolean afk) {
+    public PlayerTime(ProxiedPlayer player, long startTime, String server, AFKState state) {
         this.player = player;
         this.startTime = startTime;
         this.server = server;
-        this.afk = afk;
+        this.afkState = state;
     }
 
 
@@ -31,7 +32,11 @@ public class PlayerTime {
     }
 
     public boolean isAFK() {
-        return afk;
+        return !afkState.isPlayed();
+    }
+
+    public AFKState getAFKState() {
+        return afkState;
     }
 
 }

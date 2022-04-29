@@ -1,8 +1,10 @@
 package com.gmail.necnionch.myplugin.bungeeplaytime.bungee.listeners;
 
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.BungeePlayTime;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.AFKState;
 import net.md_5.bungee.api.config.ServerInfo;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
+import net.md_5.bungee.api.event.ChatEvent;
 import net.md_5.bungee.api.event.PlayerDisconnectEvent;
 import net.md_5.bungee.api.event.ServerConnectedEvent;
 import net.md_5.bungee.api.plugin.Listener;
@@ -17,7 +19,6 @@ public class PlayerListener implements Listener {
     }
 
 
-
     @EventHandler
     public void onSwitch(ServerConnectedEvent event) {
         ProxiedPlayer player = event.getPlayer();
@@ -25,13 +26,11 @@ public class PlayerListener implements Listener {
         ServerInfo toServer = event.getServer().getInfo();
 
 
-        if (fromServer == null) {  // proxy join
-            plugin.insertPlayer(player, System.currentTimeMillis(), toServer.getName(), false);
-
-        } else {  // switched
-            plugin.insertPlayer(player, System.currentTimeMillis(), toServer.getName(), false);
-
+        plugin.insertPlayer(player, System.currentTimeMillis(), toServer.getName(), AFKState.UNKNOWN);
+        if (fromServer != null && fromServer.getPlayers().size() <= 1) {
+            plugin.getMessenger().removeActive(fromServer);
         }
+        plugin.getMessenger().sendPing(toServer);
     }
 
     @EventHandler
@@ -39,10 +38,25 @@ public class PlayerListener implements Listener {
         ProxiedPlayer player = event.getPlayer();
         if (player.getServer() != null) {
             plugin.removePlayer(player.getUniqueId());
+
+            if (player.getServer().getInfo().getPlayers().size() <= 1) {
+                plugin.getMessenger().removeActive(player.getServer().getInfo());
+            }
+
         }
 
     }
 
+    @EventHandler
+    public void onChat(ChatEvent event) {  // chat or proxy command executes
+        if (!(event.getSender() instanceof ProxiedPlayer))
+            return;
 
+        if (event.isCommand() && !event.isProxyCommand())
+            return;  // ignored non-proxy command
+
+        plugin.sendAFKChangeRequest(((ProxiedPlayer) event.getSender()), false);
+
+    }
 
 }

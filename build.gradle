@@ -1,7 +1,7 @@
 apply plugin: 'java'
 
 group = 'com.gmail.necnionch.myplugin'
-version = '1.0.0'
+version = '1.1.0-SNAPSHOT'
 
 repositories {
     mavenCentral()
@@ -17,19 +17,21 @@ repositories {
 
     maven { url "https://repo.dmulloy2.net/repository/public/" }
 
-    mavenCentral()
-    maven {
-        url "https://nexus.codecrafter47.de/content/repositories/public/"
-    }
+//    mavenCentral()
+//    maven {
+//        url "https://nexus.codecrafter47.de/content/repositories/public/"
+//    }
 
 }
 
 dependencies {
     compileOnly 'net.md-5:bungeecord-api:1.16-R0.4'
     compileOnly 'org.spigotmc:spigot-api:1.17.1-R0.1-SNAPSHOT'
+    implementation 'org.jetbrains:annotations:23.0.0'
 
-    implementation files("libs/AFKPlus.jar")
-    implementation "codecrafter47.bungeetablistplus:bungeetablistplus-api-bungee:2.7.0"
+    implementation(files("libs/AFKPlus.jar"))
+//    implementation "codecrafter47.bungeetablistplus:bungeetablistplus-api-bungee:2.7.0"
+    implementation(files("libs/BungeeTabListPlus-3.4.4-fixvers.jar"))
 }
 
 def targetJavaVersion = 8

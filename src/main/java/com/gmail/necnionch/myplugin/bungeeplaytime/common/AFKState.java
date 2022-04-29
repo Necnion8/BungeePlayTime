@@ -1,42 +1,64 @@
 package com.gmail.necnionch.myplugin.bungeeplaytime.common;
 
+
 import com.google.common.io.ByteArrayDataInput;
-import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
 
-import java.util.UUID;
+public enum AFKState {
+    FALSE(0),
+    TRUE(1),
+    UNKNOWN(-1);
 
-public class AFKState {
+    private final int value;
 
-    private final UUID player;
-    private final boolean afk;
-
-    public AFKState(UUID player, boolean afk) {
-        this.player = player;
-        this.afk = afk;
+    AFKState(int value) {
+        this.value = value;
     }
 
-    public UUID getPlayer() {
-        return player;
+    public int getValue() {
+        return value;
     }
 
-    public boolean isAfk() {
-        return afk;
+    public static AFKState valueOf(int value) {
+        switch (value) {
+            case 0:
+                return FALSE;
+            case 1:
+                return TRUE;
+            case -1:
+                return UNKNOWN;
+            default:
+                throw new IllegalArgumentException("unknown state: " + value);
+        }
+    }
+
+    public static AFKState valueOrNoneOf(int value) {
+        switch (value) {
+            case 0:
+                return FALSE;
+            case 1:
+                return TRUE;
+            default:
+                return UNKNOWN;
+        }
+    }
+
+    public boolean isPlayed() {
+        if (UNKNOWN.equals(this))
+            return isPlayedInUnknownState();
+        return !TRUE.equals(this);
+    }
+
+    public static boolean isPlayedInUnknownState() {
+        return BPTUtil.isPlayedInUnknownState();
     }
 
 
-    @SuppressWarnings("UnstableApiUsage")
-    public static AFKState deserialize(byte[] data) {
-        ByteArrayDataInput in = ByteStreams.newDataInput(data);
-        return new AFKState(UUID.fromString(in.readUTF()), in.readBoolean());
-    }
-
-    @SuppressWarnings("UnstableApiUsage")
-    public byte[] serialize() {
-        ByteArrayDataOutput out = ByteStreams.newDataOutput();
-        out.writeUTF(player.toString());
-        out.writeBoolean(afk);
-        return out.toByteArray();
+    public static AFKState deserializeFromLegacy(byte[] data) {
+        //noinspection UnstableApiUsage
+        ByteArrayDataInput input = ByteStreams.newDataInput(data);
+        input.readUTF();  // playerId
+        return input.readBoolean() ? AFKState.TRUE : FALSE;
     }
 
 }

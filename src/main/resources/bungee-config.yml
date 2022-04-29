@@ -1,7 +1,13 @@
 
+players:
+  played-in-unknown-state: false
+  afk-minutes: 5
+
 database:
   mysql:
     username: root
     password: "password"
     address: localhost:3306
     database: "bungeeplaytime"
+    options:
+      autoReconnect: true
