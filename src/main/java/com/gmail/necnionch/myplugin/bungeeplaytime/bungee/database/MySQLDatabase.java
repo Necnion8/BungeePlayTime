@@ -138,14 +138,14 @@ public class MySQLDatabase implements Database {
                 + "WHERE `uuid` = ?" + paramAfters + paramServer;
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-
-            stmt.setString(1, playerId.toString());
+            int pIndex = 1;
+            stmt.setString(pIndex++, playerId.toString());
 
             if (options.getAfters().isPresent())
-                stmt.setLong(2, options.getAfters().getAsLong());
+                stmt.setLong(pIndex++, options.getAfters().getAsLong());
 
             if (options.getServerName().isPresent())
-                stmt.setNString(3, options.getServerName().get());
+                stmt.setNString(pIndex, options.getServerName().get());
 
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
