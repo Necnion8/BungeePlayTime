@@ -70,7 +70,7 @@ public class MainCommand extends RootCommand {
         }
 
         s.sendMessage(new ComponentBuilder("連携済みサーバー: ").color(ChatColor.GOLD)
-                .appendLegacy(actives)
+                .appendLegacy(ChatColor.WHITE + actives)
                 .create());
     }
 
