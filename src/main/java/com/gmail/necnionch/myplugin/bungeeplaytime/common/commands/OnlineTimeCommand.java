@@ -1,48 +1,46 @@
-package com.gmail.necnionch.myplugin.bungeeplaytime.bungee.commands;
+package com.gmail.necnionch.myplugin.bungeeplaytime.common.commands;
 
-import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.BungeePlayTime;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.BPTUtil;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.CommandPlatform;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.IPlayTimeAPI;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.command.CommandSender;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.command.SimpleCommand;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.options.LookupTimeListOptions;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.options.LookupTimeOptions;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.result.PlayerName;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.result.PlayerTimeResult;
 import net.md_5.bungee.api.ChatColor;
-import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.chat.TextComponent;
-import net.md_5.bungee.api.connection.ProxiedPlayer;
-import net.md_5.bungee.api.plugin.Command;
-import net.md_5.bungee.api.plugin.TabExecutor;
+import org.jetbrains.annotations.NotNull;
 
-import java.util.Collections;
-import java.util.Locale;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
-public class PlayTimeCommand extends Command implements TabExecutor {
+public class OnlineTimeCommand extends SimpleCommand {
+    private final IPlayTimeAPI api;
+    private final CommandPlatform platform;
 
-    private final BungeePlayTime owner;
-
-    public PlayTimeCommand(BungeePlayTime owner) {
-        super("playtime", "bungeeplaytime.command.playtime", "pt");
-        this.owner = owner;
+    public OnlineTimeCommand(IPlayTimeAPI api, CommandPlatform platform) {
+        super("onlinetime", "bungeeplaytime.command.onlinetime", "ot");
+        this.api = api;
+        this.platform = platform;
     }
 
     @Override
-    public void execute(CommandSender sender, String[] args) {
-        if (args.length >= 1) {
-            if (args[0].equalsIgnoreCase("top")) {
+    public void execute(CommandSender sender, List<String> args) {
+        if (!args.isEmpty()) {
+            if (args.get(0).equalsIgnoreCase("top")) {
                 lookupTops(sender);
                 return;
             }
 
-            String name = args[0];
-            ProxiedPlayer player = owner.getProxy().getPlayer(name);
+            String name = args.get(0);
+            CommandSender player = platform.getPlayer(name).orElse(null);
             if (player != null) {
-                lookupPlayer(sender, player.getUniqueId(), player.getName());
+                lookupPlayer(sender, player.getPlayerUniqueId(), player.getName());
             } else {
-                owner.fetchPlayerId(name).whenComplete((result, error) -> {
+                api.fetchPlayerId(name).whenComplete((result, error) -> {
                     if (error != null) {
                         sender.sendMessage(new ComponentBuilder("データエラーです :/").color(ChatColor.RED).create());
                         return;
@@ -58,30 +56,31 @@ public class PlayTimeCommand extends Command implements TabExecutor {
                 });
             }
 
-        } else if (sender instanceof ProxiedPlayer){
-            lookupPlayer(sender, ((ProxiedPlayer) sender).getUniqueId(), sender.getName());
+        } else if (sender.getPlayerUniqueId() != null){
+            lookupPlayer(sender, sender.getPlayerUniqueId(), sender.getName());
 
         } else {
-            sender.sendMessage(new ComponentBuilder("/pt (player)").color(ChatColor.RED).create());
+            sender.sendMessage(new ComponentBuilder("/ot (player)").color(ChatColor.RED).create());
         }
 
     }
 
     @Override
-    public Iterable<String> onTabComplete(CommandSender sender, String[] args) {
-        if (args.length == 1) {
-            String input = args[0].toLowerCase(Locale.ROOT);
-            return owner.getProxy().getPlayers().stream()
-                    .map(ProxiedPlayer::getName)
+    @NotNull
+    public List<String> tabComplete(CommandSender sender, String c, List<String> args) {
+        if (args.size() == 1) {
+            String input = args.get(0).toLowerCase(Locale.ROOT);
+            return platform.getOnlinePlayers().stream()
+                    .map(CommandSender::getName)
                     .filter(name -> name.startsWith(input))
-                    .collect(Collectors.toSet());
+                    .collect(Collectors.toList());
         }
-        return Collections.emptySet();
+        return Collections.emptyList();
     }
 
 
     public void lookupPlayer(CommandSender sender, UUID target, String targetName) {
-        owner.lookupTime(target).whenComplete((result, error) -> {
+        api.lookupTime(target).whenComplete((result, error) -> {
             if (error != null) {
                 sender.sendMessage(new ComponentBuilder("データエラーです :/").color(ChatColor.RED).create());
                 return;
@@ -89,14 +88,14 @@ public class PlayTimeCommand extends Command implements TabExecutor {
 
             PlayerTimeResult lookup = result.orElse(null);
             if (lookup != null) {
-                owner.lookupTimeRanking(target, new LookupTimeOptions().totalTime(false)).whenComplete((ret, err) -> {
-                    String formattedTime = BPTUtil.formatTimeText(lookup.getPlayTime());
+                api.lookupTimeRanking(target, new LookupTimeOptions().totalTime(true).currentServer()).whenComplete((ret, err) -> {
+                    String formattedTime = BPTUtil.formatTimeText(lookup.getTotalTime());
                     String message;
                     if (err == null && ret.isPresent()) {
                         int ranking = ret.getAsInt() + 1;
-                        message = String.format("§7[§f§o§li§7] §7%sさんのプレイ時間は %s §7です §e(#%d)", targetName, formattedTime, ranking);
+                        message = String.format("§7[§f§o§li§7] §7%sさんのオンライン時間は %s §7です §e(#%d)", targetName, formattedTime, ranking);
                     } else {
-                        message = String.format("§7[§f§o§li§7] §7%sさんのプレイ時間は %s §7です", targetName, formattedTime);
+                        message = String.format("§7[§f§o§li§7] §7%sさんのオンライン時間は %s §7です", targetName, formattedTime);
                     }
                     sender.sendMessage(TextComponent.fromLegacyText(message));
                 });
@@ -109,7 +108,7 @@ public class PlayTimeCommand extends Command implements TabExecutor {
     }
 
     public void lookupTops(CommandSender sender) {
-        owner.lookupTimeTops(new LookupTimeListOptions().count(8).totalTime(false)).whenComplete((tops, error) -> {
+        api.lookupTimeTops(new LookupTimeListOptions().count(8).totalTime(true).currentServer()).whenComplete((tops, error) -> {
             if (error != null) {
                 sender.sendMessage(new ComponentBuilder("データエラーです :/").color(ChatColor.RED).create());
                 return;
@@ -120,12 +119,12 @@ public class PlayTimeCommand extends Command implements TabExecutor {
                 return;
             }
             int maxNameSize = 12;
-            tops.fetchNames(owner::fetchPlayerName).whenComplete((names, ex) -> {
+            tops.fetchNames(api::fetchPlayerName).whenComplete((names, ex) -> {
                 try {
                     ComponentBuilder b = new ComponentBuilder();
-                    b.append("==== ").color(ChatColor.GRAY);
-                    b.append("プレイ時間トップ").color(ChatColor.GOLD);
-                    b.append(" ====\n").color(ChatColor.GRAY);
+                    b.append("=== ").color(ChatColor.GRAY);
+                    b.append("オンライン時間トップ").color(ChatColor.GOLD);
+                    b.append(" ===\n").color(ChatColor.GRAY);
 
                     int ranking = 1;
                     for (PlayerTimeResult entry : tops.getEntries()) {
@@ -137,10 +136,10 @@ public class PlayTimeCommand extends Command implements TabExecutor {
                                 .color(name.isPresent() ? ChatColor.GOLD : ChatColor.GRAY);
                         b.append(": ").color(ChatColor.GRAY);
 
-                        b.appendLegacy(BPTUtil.formatTimeText(entry.getPlayTime()) + "\n");
+                        b.appendLegacy(BPTUtil.formatTimeText(entry.getTotalTime()) + "\n");
                         ranking++;
                     }
-                    b.append("=============================").color(ChatColor.GRAY);
+                    b.append("===============================").color(ChatColor.GRAY);
                     sender.sendMessage(b.create());
 
                 } catch (Throwable e) {
@@ -149,6 +148,5 @@ public class PlayTimeCommand extends Command implements TabExecutor {
             });
         });
     }
-
 
 }

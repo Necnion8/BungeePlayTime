@@ -4,3 +4,27 @@ main: com.gmail.necnionch.myplugin.bungeeplaytime.bukkit.BungeePlayTime
 api-version: 1.13
 authors: [ Necnion8 ]
 softdepend: [ AFKPlus ]
+
+commands:
+  playtime:
+    permission: "bungeeplaytime.command.playtime"
+    aliases: [pt]
+  playtimetop:
+    permission: "bungeeplaytime.command.playtime"
+    aliases: [pttop]
+  onlinetime:
+    permission: "bungeeplaytime.command.onlinetime"
+    aliases: [ot]
+  onlinetimetop:
+    permission: "bungeeplaytime.command.onlinetime"
+    aliases: [ottop]
+
+permissions:
+  bungeeplaytime.command.playtime:
+    default: true
+  bungeeplaytime.command.playtimetop:
+    default: op
+  bungeeplaytime.command.onlinetime:
+    default: true
+  bungeeplaytime.command.onlinetimetop:
+    default: op

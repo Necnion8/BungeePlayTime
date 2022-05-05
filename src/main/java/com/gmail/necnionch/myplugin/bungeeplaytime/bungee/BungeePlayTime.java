@@ -1,7 +1,8 @@
 package com.gmail.necnionch.myplugin.bungeeplaytime.bungee;
 
 import codecrafter47.bungeetablistplus.api.bungee.BungeeTabListPlusAPI;
-import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.commands.*;
+import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.commands.AFKPlayersCommand;
+import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.commands.MainCommand;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.Database;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.MySQLDatabase;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.dataio.BungeeDataMessenger;
@@ -12,6 +13,12 @@ import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.listeners.PlayerListen
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.listeners.PluginMessageListener;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.AFKState;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.BPTUtil;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.CommandPlatform;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.command.CommandBungee;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.commands.OnlineTimeCommand;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.commands.OnlineTimeTopCommand;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.commands.PlayTimeCommand;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.commands.PlayTimeTopCommand;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.options.LookupTimeListOptions;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.options.LookupTimeOptions;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.result.PlayerName;
@@ -35,6 +42,7 @@ import java.util.logging.Level;
 
 public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeDataMessenger.RequestListener {
     private static PlayTimeAPI api;
+    private final CommandPlatform commandPlatform = new BungeeCommandPlatform();
     private final MainConfig mainConfig = new MainConfig(this);
     private Database database;
     private final Map<UUID, PlayerTime> players = Maps.newConcurrentMap();
@@ -76,13 +84,13 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
 
         // commands
         new MainCommand(this).registerCommand();
-        PlayTimeCommand playTimeCommand = new PlayTimeCommand(this);
-        getProxy().getPluginManager().registerCommand(this, playTimeCommand);
-        getProxy().getPluginManager().registerCommand(this, new PlayTimeTopCommand(playTimeCommand));
-        OnlineTimeCommand onlineTimeCommand = new OnlineTimeCommand(this);
-        getProxy().getPluginManager().registerCommand(this, onlineTimeCommand);
-        getProxy().getPluginManager().registerCommand(this, new OnlineTimeTopCommand(onlineTimeCommand));
         getProxy().getPluginManager().registerCommand(this, new AFKPlayersCommand(this));
+        PlayTimeCommand playTimeCommand = new PlayTimeCommand(api, commandPlatform);
+        CommandBungee.register(playTimeCommand, this);
+        CommandBungee.register(new PlayTimeTopCommand(playTimeCommand), this);
+        OnlineTimeCommand onlineTimeCommand = new OnlineTimeCommand(api, commandPlatform);
+        CommandBungee.register(onlineTimeCommand, this);
+        CommandBungee.register(new OnlineTimeTopCommand(onlineTimeCommand), this);
 
     }
 

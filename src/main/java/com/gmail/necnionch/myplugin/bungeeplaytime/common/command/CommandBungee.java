@@ -1,12 +1,16 @@
 package com.gmail.necnionch.myplugin.bungeeplaytime.common.command;
 
+import net.md_5.bungee.api.ProxyServer;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
+import net.md_5.bungee.api.plugin.Plugin;
 import net.md_5.bungee.api.plugin.TabExecutor;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Locale;
+import java.util.UUID;
 
 
 public class CommandBungee {
@@ -28,6 +32,27 @@ public class CommandBungee {
         }
 
         return new BungeeWrapper();
+    }
+
+    public static net.md_5.bungee.api.plugin.Command register(SimpleCommand command, Plugin owner) {
+        class BungeeWrapper extends net.md_5.bungee.api.plugin.Command implements TabExecutor {
+            public BungeeWrapper() {
+                super(command.getName(), command.getPermission(), command.getAliases());
+            }
+
+            @Override
+            public void execute(net.md_5.bungee.api.CommandSender sender, String[] args) {
+                command.execute(conv(sender), listFrom(args));
+            }
+
+            @Override
+            public Iterable<String> onTabComplete(net.md_5.bungee.api.CommandSender sender, String[] args) {
+                return command.tabComplete(conv(sender), args[args.length - 1], listFrom(args));
+            }
+        }
+        BungeeWrapper wrappedCommand = new BungeeWrapper();
+        ProxyServer.getInstance().getPluginManager().registerCommand(owner, wrappedCommand);
+        return wrappedCommand;
     }
 
 
@@ -76,6 +101,16 @@ public class CommandBungee {
                     return String.format("%s_%s", locale.getLanguage(), locale.getCountry()).toLowerCase(Locale.ROOT);
             }
             return null;
+        }
+
+        @Override
+        public String getName() {
+            return sender.getName();
+        }
+
+        @Override
+        public @Nullable UUID getPlayerUniqueId() {
+            return (sender instanceof ProxiedPlayer) ? ((ProxiedPlayer) sender).getUniqueId() : null;
         }
 
     }
