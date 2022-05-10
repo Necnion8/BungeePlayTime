@@ -223,15 +223,19 @@ public class MySQLDatabase implements Database {
             throw new IllegalStateException("connection is closed");
 
         boolean totalTime = options.isTotalTime();
-        String paramAfters = (options.getAfters().isPresent()) ? " AND `startTime` > ?" : "";
-        String paramServer = (options.getServerName().isPresent()) ? " AND `server` = ?" : "";
+        List<String> paramsList = Lists.newArrayList();
+        if (options.getAfters().isPresent())
+            paramsList.add("`startTime` > ?");
+        if (options.getServerName().isPresent())
+            paramsList.add("`server` = ? ");
+        Optional<String> params = (paramsList.isEmpty()) ? Optional.empty() : Optional.of(String.join(" AND ", paramsList));
 
         // exists check
         boolean found;
         String sql = "SELECT `uuid` FROM `times` WHERE `uuid` = ?";
         if (!totalTime)
             sql += " AND `isAFK` = 0";
-        sql += paramAfters + paramServer;
+        sql += params.map(s -> " AND " + s).orElse("");
         sql += " LIMIT 1";
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
@@ -261,6 +265,7 @@ public class MySQLDatabase implements Database {
                 + "    " + target
                 + "  FROM"
                 + "    `times`"
+                + params.map(s -> " WHERE " + s).orElse("")
                 + "  GROUP BY"
                 + "    `uuid`"
                 + "  HAVING"
@@ -270,11 +275,17 @@ public class MySQLDatabase implements Database {
                 + "      FROM"
                 + "        `times`"
                 + "      WHERE"
-                + "        `uuid` = ?" + paramAfters + paramServer
+                + "        `uuid` = ?" + params.map(s -> " AND " + s).orElse("")
                 + "    )"
                 + ") AS `totals`";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             int pIndex = 1;
+
+            if (options.getAfters().isPresent())
+                stmt.setLong(pIndex++, options.getAfters().getAsLong());
+            if (options.getServerName().isPresent())
+                stmt.setNString(pIndex++, options.getServerName().get());
+
             stmt.setString(pIndex++, playerId.toString());
 
             if (options.getAfters().isPresent())
