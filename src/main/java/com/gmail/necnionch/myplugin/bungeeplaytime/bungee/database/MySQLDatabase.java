@@ -386,6 +386,36 @@ public class MySQLDatabase implements Database {
         return 0;
     }
 
+    @Override
+    public long lookupOnlineDays(UUID playerId, LookupTimeOptions options) throws SQLException {
+        if (isClosed() && !openConnection())
+            throw new IllegalStateException("connection is closed");
+
+        String paramAfters = (options.getAfters().isPresent()) ? " AND `startTime` > ?" : "";
+        String paramServer = (options.getServerName().isPresent()) ? " AND `server` = ?" : "";
+
+        int defaultTimezone = TimeZone.getDefault().getOffset(0);
+        String sql = "SELECT COUNT(DISTINCT FLOOR((`startTime` + ?) / 86400000)) as `days` FROM `times` WHERE `uuid` = ?" + paramAfters + paramServer;
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            int pIndex = 1;
+
+            stmt.setInt(pIndex++, defaultTimezone);
+            stmt.setString(pIndex++, playerId.toString());
+
+            if (options.getAfters().isPresent())
+                stmt.setLong(pIndex++, options.getAfters().getAsLong());
+            if (options.getServerName().isPresent())
+                stmt.setNString(pIndex, options.getServerName().get());
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next())
+                    return rs.getLong("days");
+            }
+        }
+        return 0;
+
+    }
+
 
     private Optional<String> fetchPlayerName(UUID playerId) throws SQLException {
         if (isClosed())

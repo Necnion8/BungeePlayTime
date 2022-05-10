@@ -33,6 +33,8 @@ public interface IPlayTimeAPI {
 
     CompletableFuture<Long> lookupPlayerCount(LookupTimeOptions options);
 
+    CompletableFuture<Long> lookupOnlineDays(UUID playerId, LookupTimeOptions options);
+
 
     CompletableFuture<Optional<PlayerName>> fetchPlayerName(UUID playerId);
 

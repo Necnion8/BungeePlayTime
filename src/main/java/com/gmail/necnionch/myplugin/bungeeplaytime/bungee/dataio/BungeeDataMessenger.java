@@ -135,6 +135,7 @@ public class BungeeDataMessenger implements Listener {
         messenger.registerHandler(new GetPlayerFirstTimeRequest.Handler(api));
         messenger.registerHandler(new GetPlayerLastTimeRequest.Handler(api));
         messenger.registerHandler(new GetPlayerCountRequest.Handler(api));
+        messenger.registerHandler(new GetPlayerOnlineDaysRequest.Handler(api));
         messenger.registerHandler(new GetPlayerNameRequest.Handler(api));
 
         messengers.put(serverInfo.getName(), messenger);

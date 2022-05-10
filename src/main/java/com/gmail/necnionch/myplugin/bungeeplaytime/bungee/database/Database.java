@@ -49,6 +49,8 @@ public interface Database {
 
     long lookupPlayerCount(LookupTimeOptions options) throws SQLException;
 
+    long lookupOnlineDays(UUID playerId, LookupTimeOptions options) throws SQLException;
+
 
     Optional<PlayerName> getPlayerName(UUID playerId) throws SQLException;
 

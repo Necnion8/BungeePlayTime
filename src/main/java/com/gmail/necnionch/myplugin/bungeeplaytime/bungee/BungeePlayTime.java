@@ -365,6 +365,22 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
     }
 
     @Override
+    public CompletableFuture<Long> lookupOnlineDays(UUID playerId, LookupTimeOptions options) {
+        CompletableFuture<Long> f = new CompletableFuture<>();
+
+        getProxy().getScheduler().runAsync(this, () -> {
+            try {
+                long total = database.lookupOnlineDays(playerId, options);
+                f.complete(total);
+            } catch (SQLException e) {
+                getLogger().log(Level.SEVERE, "Exception in lookupOnlineDays", e);
+                f.completeExceptionally(new DatabaseError(e));
+            }
+        });
+        return f;
+    }
+
+    @Override
     public CompletableFuture<Optional<PlayerName>> fetchPlayerName(UUID playerId) {
         CompletableFuture<Optional<PlayerName>> f = new CompletableFuture<>();
 

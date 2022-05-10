@@ -249,6 +249,20 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
     }
 
     @Override
+    public CompletableFuture<Long> lookupOnlineDays(UUID playerId, LookupTimeOptions options) {
+        CompletableFuture<Long> f = new CompletableFuture<>();
+        messenger.send(new GetPlayerOnlineDaysRequest(playerId, setCurrentServerFrom(options)), 3000).whenComplete((ret, err) -> {
+            if (err != null) {
+                f.completeExceptionally(err);
+            } else {
+                f.complete(ret.getDays());
+                bungeeConnected = true;
+            }
+        });
+        return f;
+    }
+
+    @Override
     public CompletableFuture<Optional<PlayerName>> fetchPlayerName(UUID playerId) {
         CompletableFuture<Optional<PlayerName>> f = new CompletableFuture<>();
         messenger.send(new GetPlayerNameRequest(playerId, null), 3000).whenComplete((ret, err) -> {
