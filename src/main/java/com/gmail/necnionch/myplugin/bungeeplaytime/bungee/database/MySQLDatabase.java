@@ -342,6 +342,39 @@ public class MySQLDatabase implements Database {
         return OptionalLong.empty();
     }
 
+    @Override
+    public long lookupPlayerCount(LookupTimeOptions options) throws SQLException {
+        if (isClosed() && !openConnection())
+            throw new IllegalStateException("connection is closed");
+
+        List<String> wheres = Lists.newArrayList();
+        List<Object> params = Lists.newArrayList();
+        if (options.getAfters().isPresent()) {
+            wheres.add("`startTime` > ?");
+            params.add(options.getAfters().getAsLong());
+        }
+        if (options.getServerName().isPresent()) {
+            wheres.add("`server` = ?");
+            params.add(options.getServerName().get());
+        }
+
+        String sql = "SELECT COUNT(DISTINCT `uuid`) as `total` FROM `times`";
+        if (!wheres.isEmpty())
+            sql += " WHERE " + String.join(" AND ", wheres);
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            for (int i = 0; i < wheres.size(); i++) {
+                stmt.setObject(1+i, params.get(i));
+            }
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next())
+                    return rs.getLong("total");
+            }
+        }
+        return 0;
+    }
+
 
     private Optional<String> fetchPlayerName(UUID playerId) throws SQLException {
         if (isClosed())

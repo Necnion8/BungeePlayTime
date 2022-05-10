@@ -31,6 +31,8 @@ public interface IPlayTimeAPI {
 
     CompletableFuture<OptionalLong> lookupLastTime(UUID playerId);
 
+    CompletableFuture<Long> lookupPlayerCount(LookupTimeOptions options);
+
 
     CompletableFuture<Optional<PlayerName>> fetchPlayerName(UUID playerId);
 

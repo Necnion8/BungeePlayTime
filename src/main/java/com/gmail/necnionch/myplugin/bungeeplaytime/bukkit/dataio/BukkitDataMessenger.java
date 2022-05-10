@@ -36,6 +36,7 @@ public class BukkitDataMessenger extends DataMessenger implements PluginMessageL
         registerHandler(new GetPlayerTimeRankingResponse.Handler());
         registerHandler(new GetPlayerFirstTimeResponse.Handler());
         registerHandler(new GetPlayerLastTimeResponse.Handler());
+        registerHandler(new GetPlayerCountResponse.Handler());
         registerHandler(new GetPlayerNameResponse.Handler());
     }
 

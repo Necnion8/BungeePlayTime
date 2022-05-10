@@ -47,6 +47,8 @@ public interface Database {
 
     OptionalLong lookupLastTime(UUID playerId, LookupTimeOptions options) throws SQLException;
 
+    long lookupPlayerCount(LookupTimeOptions options) throws SQLException;
+
 
     Optional<PlayerName> getPlayerName(UUID playerId) throws SQLException;
 
