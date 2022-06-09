@@ -1,6 +1,5 @@
 package com.gmail.necnionch.myplugin.bungeeplaytime.bungee;
 
-import codecrafter47.bungeetablistplus.api.bungee.BungeeTabListPlusAPI;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.commands.AFKPlayersCommand;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.commands.MainCommand;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.Database;
@@ -8,7 +7,7 @@ import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.MySQLDatabase
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.dataio.BungeeDataMessenger;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.dataio.ServerMessenger;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.errors.DatabaseError;
-import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.hooks.BTLPAFKTagVariable;
+import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.hooks.BungeeTabListPlusVariable;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.listeners.PlayerListener;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.listeners.PluginMessageListener;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.AFKState;
@@ -47,13 +46,14 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
     private Database database;
     private final Map<UUID, PlayerTime> players = Maps.newConcurrentMap();
     private BungeeDataMessenger messenger;
+    private BungeeTabListPlusVariable btlpVariable;
 
     @Override
     public void onLoad() {
         if (getProxy().getPluginManager().getPlugin("BungeeTabListPlus") != null) {
             getLogger().info("Registering...");
             try {
-                BungeeTabListPlusAPI.registerVariable(this, new BTLPAFKTagVariable(this));
+                btlpVariable = BungeeTabListPlusVariable.register(this);
             } catch (Throwable e) {
                 getLogger().warning("Failed to register BTLP Custom Variable: " + e.getMessage());
             }
@@ -103,7 +103,9 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
 
         // hooks
         try {
-            BTLPAFKTagVariable.unregisterFromBTLPVariable();
+            if (btlpVariable != null)
+                btlpVariable.unregister();
+
         } catch (Throwable e) {
             getLogger().warning("Failed to unregister BTLP Custom Variable: " + e.getMessage());
         }
