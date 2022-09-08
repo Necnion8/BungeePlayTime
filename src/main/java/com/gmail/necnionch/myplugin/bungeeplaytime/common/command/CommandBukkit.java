@@ -1,15 +1,15 @@
 package com.gmail.necnionch.myplugin.bungeeplaytime.common.command;
 
+import com.google.common.collect.Lists;
 import net.md_5.bungee.api.chat.BaseComponent;
+import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 
 
 public class CommandBukkit {
@@ -29,8 +29,20 @@ public class CommandBukkit {
     }
 
     public static void register(RootCommand command, PluginCommand pluginCommand) {
+        if (pluginCommand == null)
+            return;
         pluginCommand.setExecutor((s, c, l, a) -> {command.execute(conv(s), listFrom(a)); return true;});
         pluginCommand.setTabCompleter((sender, cmd, label, args) -> command.tabComplete(conv(sender), args[0], listFrom(args)));
+    }
+
+    public static void register(SimpleCommand command) {
+        PluginCommand pluginCommand = Bukkit.getServer().getPluginCommand(command.getName());
+        if (pluginCommand == null)
+            throw new IllegalArgumentException("command not registered: " + command.getName());
+        pluginCommand.setExecutor((s, c, l, a) -> {command.execute(conv(s), listFrom(a)); return true;});
+        pluginCommand.setTabCompleter((sender, cmd, label, args) -> command.tabComplete(conv(sender), args[0], listFrom(args)));
+        pluginCommand.setPermission(command.getPermission());
+        pluginCommand.setAliases(Lists.newArrayList(command.getAliases()));
     }
 
 
@@ -111,6 +123,16 @@ public class CommandBukkit {
                 }
             }
             return null;
+        }
+
+        @Override
+        public String getName() {
+            return sender.getName();
+        }
+
+        @Override
+        public @Nullable UUID getPlayerUniqueId() {
+            return (sender instanceof Player) ? ((Player) sender).getUniqueId() : null;
         }
 
     }

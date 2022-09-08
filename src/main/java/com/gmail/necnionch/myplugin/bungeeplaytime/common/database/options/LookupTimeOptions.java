@@ -2,6 +2,7 @@ package com.gmail.necnionch.myplugin.bungeeplaytime.common.database.options;
 
 import com.google.common.io.ByteArrayDataInput;
 import com.google.common.io.ByteArrayDataOutput;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
 import java.util.OptionalLong;
@@ -11,6 +12,7 @@ public class LookupTimeOptions {
     protected boolean totalTime;
     protected String serverName;
     protected long afters;
+    private boolean currentServer;
 
     public LookupTimeOptions() {}
 
@@ -48,6 +50,20 @@ public class LookupTimeOptions {
         return this;
     }
 
+    public LookupTimeOptions currentServer() {
+        currentServer = true;
+        return this;
+    }
+
+    public LookupTimeOptions allServer() {
+        currentServer = false;
+        serverName = null;
+        return this;
+    }
+
+    public boolean isCurrentServer() {
+        return currentServer;
+    }
 
     public void serializeTo(ByteArrayDataOutput output) {
         output.writeBoolean(totalTime);
@@ -60,6 +76,16 @@ public class LookupTimeOptions {
         String serverName = input.readUTF();
         long afters = input.readLong();
         return new LookupTimeOptions(totalTime, (serverName.isEmpty()) ? null : serverName, afters);
+    }
+
+    public LookupTimeOptions copyTo(@Nullable LookupTimeOptions options) {
+        if (options == null)
+            options = new LookupTimeOptions();
+        options.totalTime = totalTime;
+        options.serverName = serverName;
+        options.afters = afters;
+        options.currentServer = currentServer;
+        return options;
     }
 
 }

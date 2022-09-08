@@ -70,7 +70,7 @@ public class MainCommand extends RootCommand {
         }
 
         s.sendMessage(new ComponentBuilder("連携済みサーバー: ").color(ChatColor.GOLD)
-                .appendLegacy(actives)
+                .appendLegacy(ChatColor.WHITE + actives)
                 .create());
     }
 
@@ -96,7 +96,7 @@ public class MainCommand extends RootCommand {
                     .map(msg -> msg.getServerInfo().getName())
                     .collect(Collectors.joining(ChatColor.GRAY + ", " + ChatColor.WHITE));
             s.sendMessage(new ComponentBuilder("連携したサーバー: ").color(ChatColor.GOLD)
-                    .appendLegacy(actives)
+                    .appendLegacy(ChatColor.WHITE + actives)
                     .create());
         }, 1250, TimeUnit.MILLISECONDS);
     }

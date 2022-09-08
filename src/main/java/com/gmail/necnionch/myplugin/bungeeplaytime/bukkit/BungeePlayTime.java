@@ -5,6 +5,12 @@ import com.gmail.necnionch.myplugin.bungeeplaytime.bukkit.hooks.AFKPlusBridge;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bukkit.listeners.PlayerListener;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.AFKState;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.BPTUtil;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.CommandPlatform;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.command.CommandBukkit;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.commands.OnlineTimeCommand;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.commands.OnlineTimeTopCommand;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.commands.PlayTimeCommand;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.commands.PlayTimeTopCommand;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.options.LookupTimeListOptions;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.options.LookupTimeOptions;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.result.PlayerName;
@@ -21,6 +27,7 @@ import java.util.concurrent.CompletableFuture;
 
 public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
     private static PlayTimeAPI api;
+    private final CommandPlatform commandPlatform = new BukkitCommandPlatform();
     private BukkitDataMessenger messenger;
     private final AFKPlusBridge afkPlusBridge = new AFKPlusBridge(this);
     private int afkMinutes = 5;
@@ -35,17 +42,25 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
 
         // init
         messenger = BukkitDataMessenger.register(this, BPTUtil.MESSAGE_CHANNEL_DATA, this::onRequest);
-        getServer().getScheduler().runTask(this, () -> {
+        getServer().getScheduler().runTaskLater(this, () -> {
             if (!getServer().getOnlinePlayers().isEmpty())
                 messenger.send(new PingRequest()).whenComplete((ret, err) -> {
                     if (err == null)
                         onConnect();
                 });
-        });
+        }, 2);
 
         // hooks
         if (afkPlusBridge.hook())
             getLogger().info("Hooked to AFKPlus");
+
+        // register commands
+        PlayTimeCommand playTimeCommand = new PlayTimeCommand(api, commandPlatform);
+        CommandBukkit.register(playTimeCommand);
+        CommandBukkit.register(new PlayTimeTopCommand(playTimeCommand));
+        OnlineTimeCommand onlineTimeCommand = new OnlineTimeCommand(api, commandPlatform);
+        CommandBukkit.register(onlineTimeCommand);
+        CommandBukkit.register(new OnlineTimeTopCommand(onlineTimeCommand));
 
     }
 
@@ -116,11 +131,23 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
         return currentServerName;
     }
 
+    private LookupTimeOptions setCurrentServerFrom(LookupTimeOptions options) {
+        if (options.isCurrentServer())
+            return options.copyTo(null).server(currentServerName != null ? currentServerName : "");
+        return options;
+    }
+
+    private LookupTimeListOptions setCurrentServerFrom(LookupTimeListOptions options) {
+        if (options.isCurrentServer())
+            return options.copyTo(null).server(currentServerName != null ? currentServerName : "");
+        return options;
+    }
+
 
     @Override
     public CompletableFuture<Optional<PlayerTimeResult>> lookupTime(UUID playerId, LookupTimeOptions options) {
         CompletableFuture<Optional<PlayerTimeResult>> f = new CompletableFuture<>();
-        messenger.send(new GetPlayerTimeRequest(playerId, options), 3000).whenComplete((ret, err) -> {
+        messenger.send(new GetPlayerTimeRequest(playerId, setCurrentServerFrom(options)), 3000).whenComplete((ret, err) -> {
             if (err != null) {
                 f.completeExceptionally(err);
             } else {
@@ -133,13 +160,13 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
 
     @Override
     public CompletableFuture<Optional<PlayerTimeResult>> lookupTime(UUID playerId) {
-        return lookupTime(playerId, new com.gmail.necnionch.myplugin.bungeeplaytime.bukkit.database.options.LookupTimeOptions().currentServer());
+        return lookupTime(playerId, setCurrentServerFrom(new LookupTimeOptions().currentServer()));
     }
 
     @Override
     public CompletableFuture<PlayerTimeEntries> lookupTimeTops(LookupTimeListOptions options) {
         CompletableFuture<PlayerTimeEntries> f = new CompletableFuture<>();
-        messenger.send(new GetPlayerTimeEntriesRequest(options), 5000).whenComplete((ret, err) -> {
+        messenger.send(new GetPlayerTimeEntriesRequest(setCurrentServerFrom(options)), 5000).whenComplete((ret, err) -> {
             if (err != null) {
                 f.completeExceptionally(err);
             } else {
@@ -153,7 +180,7 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
     @Override
     public CompletableFuture<OptionalInt> lookupTimeRanking(UUID playerId, LookupTimeOptions options) {
         CompletableFuture<OptionalInt> f = new CompletableFuture<>();
-        messenger.send(new GetPlayerTimeRankingRequest(playerId, options), 3000).whenComplete((ret, err) -> {
+        messenger.send(new GetPlayerTimeRankingRequest(playerId, setCurrentServerFrom(options)), 3000).whenComplete((ret, err) -> {
             if (err != null) {
                 f.completeExceptionally(err);
             } else {
@@ -166,13 +193,13 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
 
     @Override
     public CompletableFuture<OptionalInt> lookupTimeRanking(UUID playerId) {
-        return lookupTimeRanking(playerId, new com.gmail.necnionch.myplugin.bungeeplaytime.bukkit.database.options.LookupTimeListOptions().currentServer());
+        return lookupTimeRanking(playerId, setCurrentServerFrom(new LookupTimeListOptions().currentServer()));
     }
 
     @Override
     public CompletableFuture<OptionalLong> lookupFirstTime(UUID playerId, LookupTimeOptions options) {
         CompletableFuture<OptionalLong> f = new CompletableFuture<>();
-        messenger.send(new GetPlayerFirstTimeRequest(playerId, options), 3000).whenComplete((ret, err) -> {
+        messenger.send(new GetPlayerFirstTimeRequest(playerId, setCurrentServerFrom(options)), 3000).whenComplete((ret, err) -> {
             if (err != null) {
                 f.completeExceptionally(err);
             } else {
@@ -185,13 +212,13 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
 
     @Override
     public CompletableFuture<OptionalLong> lookupFirstTime(UUID playerId) {
-        return lookupFirstTime(playerId, new com.gmail.necnionch.myplugin.bungeeplaytime.bukkit.database.options.LookupTimeListOptions().currentServer());
+        return lookupFirstTime(playerId, setCurrentServerFrom(new LookupTimeListOptions().currentServer()));
     }
 
     @Override
     public CompletableFuture<OptionalLong> lookupLastTime(UUID playerId, LookupTimeOptions options) {
         CompletableFuture<OptionalLong> f = new CompletableFuture<>();
-        messenger.send(new GetPlayerLastTimeRequest(playerId, options), 3000).whenComplete((ret, err) -> {
+        messenger.send(new GetPlayerLastTimeRequest(playerId, setCurrentServerFrom(options)), 3000).whenComplete((ret, err) -> {
             if (err != null) {
                 f.completeExceptionally(err);
             } else {
@@ -204,7 +231,35 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
 
     @Override
     public CompletableFuture<OptionalLong> lookupLastTime(UUID playerId) {
-        return lookupLastTime(playerId, new com.gmail.necnionch.myplugin.bungeeplaytime.bukkit.database.options.LookupTimeOptions().currentServer());
+        return lookupLastTime(playerId, setCurrentServerFrom(new LookupTimeOptions().currentServer()));
+    }
+
+    @Override
+    public CompletableFuture<Long> lookupPlayerCount(LookupTimeOptions options) {
+        CompletableFuture<Long> f = new CompletableFuture<>();
+        messenger.send(new GetPlayerCountRequest(setCurrentServerFrom(options)), 3000).whenComplete((ret, err) -> {
+            if (err != null) {
+                f.completeExceptionally(err);
+            } else {
+                f.complete(ret.getTotal());
+                bungeeConnected = true;
+            }
+        });
+        return f;
+    }
+
+    @Override
+    public CompletableFuture<Long> lookupOnlineDays(UUID playerId, LookupTimeOptions options) {
+        CompletableFuture<Long> f = new CompletableFuture<>();
+        messenger.send(new GetPlayerOnlineDaysRequest(playerId, setCurrentServerFrom(options)), 3000).whenComplete((ret, err) -> {
+            if (err != null) {
+                f.completeExceptionally(err);
+            } else {
+                f.complete(ret.getDays());
+                bungeeConnected = true;
+            }
+        });
+        return f;
     }
 
     @Override

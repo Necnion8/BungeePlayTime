@@ -138,14 +138,14 @@ public class MySQLDatabase implements Database {
                 + "WHERE `uuid` = ?" + paramAfters + paramServer;
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-
-            stmt.setString(1, playerId.toString());
+            int pIndex = 1;
+            stmt.setString(pIndex++, playerId.toString());
 
             if (options.getAfters().isPresent())
-                stmt.setLong(2, options.getAfters().getAsLong());
+                stmt.setLong(pIndex++, options.getAfters().getAsLong());
 
             if (options.getServerName().isPresent())
-                stmt.setNString(3, options.getServerName().get());
+                stmt.setNString(pIndex, options.getServerName().get());
 
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
@@ -223,15 +223,19 @@ public class MySQLDatabase implements Database {
             throw new IllegalStateException("connection is closed");
 
         boolean totalTime = options.isTotalTime();
-        String paramAfters = (options.getAfters().isPresent()) ? " AND `startTime` > ?" : "";
-        String paramServer = (options.getServerName().isPresent()) ? " AND `server` = ?" : "";
+        List<String> paramsList = Lists.newArrayList();
+        if (options.getAfters().isPresent())
+            paramsList.add("`startTime` > ?");
+        if (options.getServerName().isPresent())
+            paramsList.add("`server` = ? ");
+        Optional<String> params = (paramsList.isEmpty()) ? Optional.empty() : Optional.of(String.join(" AND ", paramsList));
 
         // exists check
         boolean found;
         String sql = "SELECT `uuid` FROM `times` WHERE `uuid` = ?";
         if (!totalTime)
             sql += " AND `isAFK` = 0";
-        sql += paramAfters + paramServer;
+        sql += params.map(s -> " AND " + s).orElse("");
         sql += " LIMIT 1";
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
@@ -261,6 +265,7 @@ public class MySQLDatabase implements Database {
                 + "    " + target
                 + "  FROM"
                 + "    `times`"
+                + params.map(s -> " WHERE " + s).orElse("")
                 + "  GROUP BY"
                 + "    `uuid`"
                 + "  HAVING"
@@ -270,11 +275,17 @@ public class MySQLDatabase implements Database {
                 + "      FROM"
                 + "        `times`"
                 + "      WHERE"
-                + "        `uuid` = ?" + paramAfters + paramServer
+                + "        `uuid` = ?" + params.map(s -> " AND " + s).orElse("")
                 + "    )"
                 + ") AS `totals`";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             int pIndex = 1;
+
+            if (options.getAfters().isPresent())
+                stmt.setLong(pIndex++, options.getAfters().getAsLong());
+            if (options.getServerName().isPresent())
+                stmt.setNString(pIndex++, options.getServerName().get());
+
             stmt.setString(pIndex++, playerId.toString());
 
             if (options.getAfters().isPresent())
@@ -340,6 +351,69 @@ public class MySQLDatabase implements Database {
             }
         }
         return OptionalLong.empty();
+    }
+
+    @Override
+    public long lookupPlayerCount(LookupTimeOptions options) throws SQLException {
+        if (isClosed() && !openConnection())
+            throw new IllegalStateException("connection is closed");
+
+        List<String> wheres = Lists.newArrayList();
+        List<Object> params = Lists.newArrayList();
+        if (options.getAfters().isPresent()) {
+            wheres.add("`startTime` > ?");
+            params.add(options.getAfters().getAsLong());
+        }
+        if (options.getServerName().isPresent()) {
+            wheres.add("`server` = ?");
+            params.add(options.getServerName().get());
+        }
+
+        String sql = "SELECT COUNT(DISTINCT `uuid`) as `total` FROM `times`";
+        if (!wheres.isEmpty())
+            sql += " WHERE " + String.join(" AND ", wheres);
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            for (int i = 0; i < wheres.size(); i++) {
+                stmt.setObject(1+i, params.get(i));
+            }
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next())
+                    return rs.getLong("total");
+            }
+        }
+        return 0;
+    }
+
+    @Override
+    public long lookupOnlineDays(UUID playerId, LookupTimeOptions options) throws SQLException {
+        if (isClosed() && !openConnection())
+            throw new IllegalStateException("connection is closed");
+
+        String paramAfters = (options.getAfters().isPresent()) ? " AND `startTime` > ?" : "";
+        String paramServer = (options.getServerName().isPresent()) ? " AND `server` = ?" : "";
+
+        int defaultTimezone = TimeZone.getDefault().getOffset(0);
+        String sql = "SELECT COUNT(DISTINCT FLOOR((`startTime` + ?) / 86400000)) as `days` FROM `times` WHERE `uuid` = ?" + paramAfters + paramServer;
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            int pIndex = 1;
+
+            stmt.setInt(pIndex++, defaultTimezone);
+            stmt.setString(pIndex++, playerId.toString());
+
+            if (options.getAfters().isPresent())
+                stmt.setLong(pIndex++, options.getAfters().getAsLong());
+            if (options.getServerName().isPresent())
+                stmt.setNString(pIndex, options.getServerName().get());
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next())
+                    return rs.getLong("days");
+            }
+        }
+        return 0;
+
     }
 
 

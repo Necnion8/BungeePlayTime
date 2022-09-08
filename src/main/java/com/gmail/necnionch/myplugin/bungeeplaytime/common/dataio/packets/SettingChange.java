@@ -40,6 +40,7 @@ public class SettingChange extends Request<SettingChangeResponse> {
     public void serialize(ByteArrayDataOutput output) {
         output.writeBoolean(playedInUnknown);
         output.writeInt(afkMinutes);
+        output.writeUTF(serverName);
     }
 
 

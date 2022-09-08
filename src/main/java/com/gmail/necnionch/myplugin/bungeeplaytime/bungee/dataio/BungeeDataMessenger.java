@@ -134,6 +134,8 @@ public class BungeeDataMessenger implements Listener {
         messenger.registerHandler(new GetPlayerTimeRankingRequest.Handler(api));
         messenger.registerHandler(new GetPlayerFirstTimeRequest.Handler(api));
         messenger.registerHandler(new GetPlayerLastTimeRequest.Handler(api));
+        messenger.registerHandler(new GetPlayerCountRequest.Handler(api));
+        messenger.registerHandler(new GetPlayerOnlineDaysRequest.Handler(api));
         messenger.registerHandler(new GetPlayerNameRequest.Handler(api));
 
         messengers.put(serverInfo.getName(), messenger);
@@ -176,7 +178,7 @@ public class BungeeDataMessenger implements Listener {
         ServerMessenger messenger = getMessenger(serverInfo);
         if (messenger != null) {
             plugin.getProxy().getScheduler().schedule(plugin, () ->
-                    sendPing(messenger), 50, TimeUnit.MILLISECONDS);
+                    sendPing(messenger), 100, TimeUnit.MILLISECONDS);
         }
     }
 

@@ -120,9 +120,17 @@ public class AFKPlusBridge extends PluginHook implements Listener {
         AFKPlusPlayer afkPlayer = afkPlus.getPlayer(playerId);
         if (afkPlayer != null) {
             if (afk) {
-                afkPlayer.startAFK();
+                if (!afkPlayer.isAFK()) {
+                    afkPlayer.startAFK();
+                } else {
+                    afkPlayer.forceStartAFK();
+                }
             } else {
-                afkPlayer.stopAFK();
+                if (afkPlayer.isAFK()) {
+                    afkPlayer.stopAFK();
+                } else {
+                    afkPlayer.forceStopAFK();
+                }
             }
         }
     }
