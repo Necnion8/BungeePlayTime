@@ -25,7 +25,6 @@ public class PlayerListener implements Listener {
         ServerInfo fromServer = (player.getServer() != null) ? player.getServer().getInfo() : null;
         ServerInfo toServer = event.getServer().getInfo();
 
-
         plugin.insertPlayer(player, System.currentTimeMillis(), toServer.getName(), AFKState.UNKNOWN);
         if (fromServer != null && fromServer.getPlayers().size() <= 1) {
             plugin.getMessenger().removeActive(fromServer);
@@ -36,13 +35,12 @@ public class PlayerListener implements Listener {
     @EventHandler
     public void onQuit(PlayerDisconnectEvent event) {
         ProxiedPlayer player = event.getPlayer();
-        if (player.getServer() != null) {
-            plugin.removePlayer(player.getUniqueId());
+        plugin.removePlayer(player.getUniqueId());
 
+        if (player.getServer() != null) {
             if (player.getServer().getInfo().getPlayers().size() <= 1) {
                 plugin.getMessenger().removeActive(player.getServer().getInfo());
             }
-
         }
 
     }
