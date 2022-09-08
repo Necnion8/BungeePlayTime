@@ -178,7 +178,7 @@ public class BungeeDataMessenger implements Listener {
         ServerMessenger messenger = getMessenger(serverInfo);
         if (messenger != null) {
             plugin.getProxy().getScheduler().schedule(plugin, () ->
-                    sendPing(messenger), 50, TimeUnit.MILLISECONDS);
+                    sendPing(messenger), 100, TimeUnit.MILLISECONDS);
         }
     }
 

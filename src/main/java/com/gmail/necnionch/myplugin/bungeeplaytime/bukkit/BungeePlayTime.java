@@ -42,13 +42,13 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
 
         // init
         messenger = BukkitDataMessenger.register(this, BPTUtil.MESSAGE_CHANNEL_DATA, this::onRequest);
-        getServer().getScheduler().runTask(this, () -> {
+        getServer().getScheduler().runTaskLater(this, () -> {
             if (!getServer().getOnlinePlayers().isEmpty())
                 messenger.send(new PingRequest()).whenComplete((ret, err) -> {
                     if (err == null)
                         onConnect();
                 });
-        });
+        }, 2);
 
         // hooks
         if (afkPlusBridge.hook())
