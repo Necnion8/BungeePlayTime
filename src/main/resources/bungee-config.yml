@@ -11,3 +11,6 @@ database:
     database: "bungeeplaytime"
     options:
       autoReconnect: true
+
+# Use ConnectorPlugin in API communication
+enable-connector-plugin-support: true

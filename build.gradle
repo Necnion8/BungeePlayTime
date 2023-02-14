@@ -22,6 +22,11 @@ repositories {
 //        url "https://nexus.codecrafter47.de/content/repositories/public/"
 //    }
 
+    maven {
+        name = "minebench-repo"
+        url = "https://repo.minebench.de/"
+    }
+
 }
 
 dependencies {
@@ -32,6 +37,9 @@ dependencies {
     implementation(files("libs/AFKPlus.jar"))
 //    implementation "codecrafter47.bungeetablistplus:bungeetablistplus-api-bungee:2.7.0"
     implementation(files("libs/BungeeTabListPlus-3.4.4-fixvers.jar"))
+
+    implementation "de.themoep.connectorplugin:bungee:1.5-SNAPSHOT"
+    implementation "de.themoep.connectorplugin:bukkit:1.5-SNAPSHOT"
 }
 
 def targetJavaVersion = 8

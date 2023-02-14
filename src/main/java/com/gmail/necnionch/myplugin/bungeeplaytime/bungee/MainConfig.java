@@ -25,6 +25,10 @@ public class MainConfig extends BungeeConfigDriver {
         return mySqlSection;
     }
 
+    public boolean isConnectorPluginSupport() {
+        return config.getBoolean("enable-connector-plugin-support", true);
+    }
+
 
     @Override
     public boolean onLoaded(Configuration config) {

@@ -3,7 +3,7 @@ version: '${version}'
 main: com.gmail.necnionch.myplugin.bungeeplaytime.bukkit.BungeePlayTime
 api-version: 1.13
 authors: [ Necnion8 ]
-softdepend: [ AFKPlus ]
+softdepend: [ AFKPlus, ConnectorPlugin ]
 
 commands:
   playtime:

@@ -1,8 +1,8 @@
 package com.gmail.necnionch.myplugin.bungeeplaytime.bukkit.hooks;
 
 import com.gmail.necnionch.myplugin.bungeeplaytime.bukkit.BungeePlayTime;
-import com.gmail.necnionch.myplugin.bungeeplaytime.bukkit.dataio.BukkitDataMessenger;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.AFKState;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.DataMessenger;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packets.AFKChange;
 import com.google.common.collect.Maps;
 import net.lapismc.afkplus.AFKPlus;
@@ -59,7 +59,7 @@ public class AFKPlusBridge extends PluginHook implements Listener {
         afkTimeout.clear();
     }
 
-    private BukkitDataMessenger getMessenger() {
+    private DataMessenger getMessenger() {
         return ((BungeePlayTime) owner).getMessenger();
     }
 

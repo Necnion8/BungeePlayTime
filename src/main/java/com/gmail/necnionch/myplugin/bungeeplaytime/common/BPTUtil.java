@@ -8,6 +8,7 @@ import java.util.Date;
 public class BPTUtil {
     public static final String MESSAGE_CHANNEL_AFK_STATE = "bptime:afkstate";
     public static final String MESSAGE_CHANNEL_DATA = "bptime:data";
+    public static final String CONNECTOR_CONNECTING_NAME = "Necnion8_BungeePlayTime";
     private static boolean playedInUnknownState;
 
     public static String formatEpochTime(long epoch) {

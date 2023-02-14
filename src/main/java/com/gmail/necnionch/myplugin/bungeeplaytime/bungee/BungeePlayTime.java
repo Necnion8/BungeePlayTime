@@ -8,6 +8,7 @@ import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.dataio.BungeeDataMesse
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.dataio.ServerMessenger;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.errors.DatabaseError;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.hooks.BungeeTabListPlusVariable;
+import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.hooks.ConnectorPluginBridge;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.listeners.PlayerListener;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.listeners.PluginMessageListener;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.AFKState;
@@ -47,6 +48,7 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
     private final Map<UUID, PlayerTime> players = Maps.newConcurrentMap();
     private BungeeDataMessenger messenger;
     private BungeeTabListPlusVariable btlpVariable;
+    private final ConnectorPluginBridge connectorPluginBridge = new ConnectorPluginBridge(this);
 
     @Override
     public void onLoad() {
@@ -70,8 +72,15 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
         // database
         connectDatabase();
 
+        // init connector
+        if (mainConfig.isConnectorPluginSupport()) {
+            connectorPluginBridge.hook();
+            if (connectorPluginBridge.isEnabled())
+                connectorPluginBridge.registerMessenger();
+        }
+
         // init
-        messenger = BungeeDataMessenger.register(this, BPTUtil.MESSAGE_CHANNEL_DATA, this);
+        messenger = BungeeDataMessenger.register(this, BPTUtil.MESSAGE_CHANNEL_DATA, this, connectorPluginBridge);
         messenger.updateServerMessengers();
 
         getProxy().getPlayers().forEach(p ->
@@ -102,6 +111,12 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
         getProxy().unregisterChannel(BPTUtil.MESSAGE_CHANNEL_AFK_STATE);
 
         // hooks
+        try {
+            connectorPluginBridge.unhook();
+        } catch (Throwable e) {
+            getLogger().warning("Failed to unhook to ConnectorPlugin: " + e.getMessage());
+        }
+
         try {
             if (btlpVariable != null)
                 btlpVariable.unregister();
