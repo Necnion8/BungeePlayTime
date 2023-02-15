@@ -9,7 +9,7 @@ import org.bukkit.plugin.Plugin;
 public class ConnectorPluginBridge extends PluginHook {
 
     private Connector<?, ?> connector;
-    private ConnectorBukkitDataMessenger messenger;
+    private BukkitDataMessenger messenger;
 
     public ConnectorPluginBridge(Plugin owner) {
         super(owner, "ConnectorPlugin");
@@ -38,7 +38,7 @@ public class ConnectorPluginBridge extends PluginHook {
     }
 
 
-    public ConnectorBukkitDataMessenger registerMessenger(String channelName, BukkitDataMessenger.RequestListener listener) {
+    public BukkitDataMessenger registerMessenger(String channelName, BukkitDataMessenger.RequestListener listener) {
         messenger = ConnectorBukkitDataMessenger.register(owner, channelName, listener, connector);
         return messenger;
     }

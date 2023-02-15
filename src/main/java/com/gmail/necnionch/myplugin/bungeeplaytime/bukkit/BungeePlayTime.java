@@ -23,6 +23,7 @@ import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.Request;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.Response;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packets.*;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -34,7 +35,7 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
     private final MainConfig mainConfig = new MainConfig(this);
     private DataMessenger messenger;
     private final AFKPlusBridge afkPlusBridge = new AFKPlusBridge(this);
-    private final ConnectorPluginBridge connectorPluginBridge = new ConnectorPluginBridge(this);
+    private @Nullable ConnectorPluginBridge connectorPluginBridge;
     private int afkMinutes = 5;
     private boolean bungeeConnected;
     private String currentServerName;
@@ -50,10 +51,15 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
         // init connector
         CommunicationServiceType sType = mainConfig.getCommunicationService();
         if (CommunicationServiceType.CONNECTOR_PLUGIN.equals(sType)) {
-            if (connectorPluginBridge.hook()) {
-                messenger = connectorPluginBridge.registerMessenger(BPTUtil.MESSAGE_CHANNEL_DATA, this::onRequest);
-            } else {
-                getLogger().warning("Failed to hook ConnectorPlugin");
+            try {
+                connectorPluginBridge = new ConnectorPluginBridge(this);
+                if (connectorPluginBridge.hook()) {
+                    messenger = connectorPluginBridge.registerMessenger(BPTUtil.MESSAGE_CHANNEL_DATA, this::onRequest);
+                } else {
+                    getLogger().warning("Failed to register ConnectorMessenger");
+                }
+            } catch (Throwable e) {
+                getLogger().warning("Failed to hook ConnectorPlugin: " + e.getMessage());
             }
         }
 
@@ -91,7 +97,9 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
         messenger = null;
 
         afkPlusBridge.unhook();
-        connectorPluginBridge.unhook();
+
+        if (connectorPluginBridge != null)
+            connectorPluginBridge.unhook();
     }
 
     public static PlayTimeAPI getAPI() {
