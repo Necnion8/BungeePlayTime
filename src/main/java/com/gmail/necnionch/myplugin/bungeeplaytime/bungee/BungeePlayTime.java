@@ -4,6 +4,7 @@ import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.commands.AFKPlayersCom
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.commands.MainCommand;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.Database;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.MySQLDatabase;
+import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.SQLiteDatabase;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.dataio.BungeeDataMessenger;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.dataio.ServerMessenger;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.errors.DatabaseError;
@@ -196,7 +197,21 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
             }
         }
 
-        database = new MySQLDatabase(mainConfig.getMySQL(), getLogger());
+        database = null;
+        MainConfig.DBType dbType = mainConfig.getDatabaseType();
+        switch (dbType) {
+            case MYSQL: {
+                database = new MySQLDatabase(mainConfig.getMySQL(), getLogger());
+                break;
+            }
+            case SQLITE: {
+                database = new SQLiteDatabase(getDataFolder(), mainConfig.getSQLite(), getLogger());
+                break;
+            }
+            default:
+                throw new IllegalArgumentException("Unknown database type: " + dbType);
+        }
+
         try {
             if (database.openConnection())
                 database.init();

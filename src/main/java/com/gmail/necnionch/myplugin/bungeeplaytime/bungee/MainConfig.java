@@ -6,15 +6,21 @@ import net.md_5.bungee.api.plugin.Plugin;
 import net.md_5.bungee.config.Configuration;
 
 import java.util.Collections;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class MainConfig extends BungeeConfigDriver {
     private final Players playersSection = new Players();
     private final Database mySqlSection = new Database("mysql");
+    private final Database sqliteSection = new Database("sqlite");
+    private final Logger log;
 
     public MainConfig(Plugin plugin) {
         super(plugin);
+        log = plugin.getLogger();
     }
 
     public Players getPlayers() {
@@ -23,6 +29,19 @@ public class MainConfig extends BungeeConfigDriver {
 
     public Database getMySQL() {
         return mySqlSection;
+    }
+
+    public Database getSQLite() {
+        return sqliteSection;
+    }
+
+    public DBType getDatabaseType() {
+        try {
+            return DBType.valueOf(Optional.ofNullable(config.getString("db-type", "mysql")).orElse("mysql").toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            log.warning("Invalid db-type: " + e.getMessage());
+            return DBType.MYSQL;
+        }
     }
 
     public boolean isConnectorPluginSupport() {
@@ -99,5 +118,8 @@ public class MainConfig extends BungeeConfigDriver {
         }
     }
 
+    public enum DBType {
+        SQLITE, MYSQL
+    }
 
 }
