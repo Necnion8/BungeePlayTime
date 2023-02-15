@@ -430,10 +430,9 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
 
 
     public Map<UUID, String> getPlayerNameCache() {
-        if (database instanceof MySQLDatabase) {
-            return ((MySQLDatabase) database).cachedPlayerNames();
-        }
-        return Collections.emptyMap();
+        return Optional.ofNullable(database)
+                .map(Database::cachedPlayerNames)
+                .orElseGet(Collections::emptyMap);
     }
 
 

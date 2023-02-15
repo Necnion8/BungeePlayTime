@@ -6,12 +6,10 @@ import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.options.Looku
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.result.PlayerName;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.result.PlayerTimeEntries;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.result.PlayerTimeResult;
+import org.jetbrains.annotations.Nullable;
 
 import java.sql.SQLException;
-import java.util.Optional;
-import java.util.OptionalInt;
-import java.util.OptionalLong;
-import java.util.UUID;
+import java.util.*;
 
 public interface Database {
     /*
@@ -55,5 +53,10 @@ public interface Database {
     Optional<PlayerName> getPlayerName(UUID playerId) throws SQLException;
 
     Optional<PlayerName> getPlayerId(String playerName) throws SQLException;
+
+
+    default @Nullable Map<UUID, String> cachedPlayerNames() {
+        return null;
+    }
 
 }
