@@ -34,6 +34,7 @@ import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packets.Setting
 import com.google.common.collect.Maps;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
 import net.md_5.bungee.api.plugin.Plugin;
+import org.jetbrains.annotations.Nullable;
 
 import java.sql.SQLException;
 import java.util.*;
@@ -107,8 +108,10 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
     @Override
     public void onDisable() {
         // unload
-        messenger.unregister();
+        if (messenger != null)
+            messenger.unregister();
         messenger = null;
+
         getProxy().unregisterChannel(BPTUtil.MESSAGE_CHANNEL_AFK_STATE);
 
         // hooks
