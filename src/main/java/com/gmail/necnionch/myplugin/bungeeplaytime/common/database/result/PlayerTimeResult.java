@@ -9,9 +9,9 @@ import java.util.UUID;
 public class PlayerTimeResult {
 
     private final UUID playerId;
-    private final long playedMillis;
-    private final long afkMillis;
-    private final long unknownMillis;
+    private long playedMillis;
+    private long afkMillis;
+    private long unknownMillis;
 
     public PlayerTimeResult(UUID playerId, long playedMillis, long afkMillis, long unknownMillis) {
         this.playerId = playerId;
@@ -39,6 +39,21 @@ public class PlayerTimeResult {
         return afkMillis;
     }
 
+    public long getUnknownTime() {
+        return unknownMillis;
+    }
+
+    public void setPlayTime(long millis) {
+        this.playedMillis = millis;
+    }
+
+    public void setAFKTime(long millis) {
+        this.afkMillis = millis;
+    }
+
+    public void setUnknownTime(long millis) {
+        this.unknownMillis = millis;
+    }
 
 
     public void serializeTo(ByteArrayDataOutput output) {

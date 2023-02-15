@@ -1,6 +1,7 @@
 package com.gmail.necnionch.myplugin.bungeeplaytime.bungee;
 
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.AFKState;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.result.PlayerTimeResult;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
 
 
@@ -37,6 +38,23 @@ public class PlayerTime {
 
     public AFKState getAFKState() {
         return afkState;
+    }
+
+
+    public void addCurrentTimesTo(PlayerTimeResult result) {
+        switch (afkState) {
+            case TRUE:
+                result.setAFKTime(result.getAFKTime() + (System.currentTimeMillis() - startTime));
+                break;
+            case FALSE:
+                result.setPlayTime(result.getPlayTime() + (System.currentTimeMillis() - startTime));
+                break;
+            case UNKNOWN:
+                result.setUnknownTime(result.getUnknownTime() + (System.currentTimeMillis() - startTime));
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown AFKState: " + afkState);
+        }
     }
 
 }

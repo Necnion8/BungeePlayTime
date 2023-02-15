@@ -290,6 +290,10 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
         getProxy().getScheduler().runAsync(this, () -> {
             try {
                 Optional<PlayerTimeResult> result = database.lookupTime(playerId, options);
+
+                if (result.isPresent() && players.containsKey(playerId))
+                    players.get(playerId).addCurrentTimesTo(result.get());
+
                 f.complete(result);
             } catch (SQLException e) {
                 getLogger().log(Level.SEVERE, "Exception in lookupTime", e);
@@ -310,7 +314,14 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
 
         getProxy().getScheduler().runAsync(this, () -> {
             try {
-                f.complete(database.lookupTimeTops(options));
+                PlayerTimeEntries result = database.lookupTimeTops(options);
+
+                result.getEntries().forEach(r -> {
+                    if (players.containsKey(r.getPlayerId()))
+                        players.get(r.getPlayerId()).addCurrentTimesTo(r);
+                });
+
+                f.complete(result);
 
             } catch (SQLException e) {
                 getLogger().log(Level.SEVERE, "Exception in lookupTimeTops", e);
