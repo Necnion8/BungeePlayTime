@@ -1,6 +1,7 @@
 package com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packets;
 
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.PlayTimeAPI;
+import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.dataio.ServerMessenger;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.options.LookupTimeOptions;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.Request;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.RequestHandler;
@@ -35,9 +36,11 @@ public class GetPlayerTimeRankingRequest extends Request<GetPlayerTimeRankingRes
     public static class Handler extends RequestHandler<GetPlayerTimeRankingRequest,  GetPlayerTimeRankingResponse> {
 
         private final PlayTimeAPI api;
+        private final ServerMessenger messenger;
 
-        public Handler(PlayTimeAPI api) {
+        public Handler(PlayTimeAPI api, ServerMessenger messenger) {
             this.api = api;
+            this.messenger = messenger;
         }
 
         @Override
@@ -47,7 +50,7 @@ public class GetPlayerTimeRankingRequest extends Request<GetPlayerTimeRankingRes
 
         @Override
         public GetPlayerTimeRankingRequest handleRequest(ByteArrayDataInput input) {
-            return new GetPlayerTimeRankingRequest(UUID.fromString(input.readUTF()), LookupTimeOptions.deserializeFrom(input));
+            return new GetPlayerTimeRankingRequest(UUID.fromString(input.readUTF()), LookupTimeOptions.deserializeFrom(input, messenger.getServerInfo().getName()));
         }
 
         @Override
