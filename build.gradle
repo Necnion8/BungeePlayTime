@@ -17,16 +17,15 @@ repositories {
 
     maven { url "https://repo.dmulloy2.net/repository/public/" }
 
-//    mavenCentral()
-//    maven {
-//        url "https://nexus.codecrafter47.de/content/repositories/public/"
-//    }
-
     maven {
         name = "minebench-repo"
         url = "https://repo.minebench.de/"
     }
 
+}
+
+configurations {
+    collectJars
 }
 
 dependencies {
@@ -40,9 +39,23 @@ dependencies {
 
     implementation "de.themoep.connectorplugin:bungee:1.5-SNAPSHOT"
     implementation "de.themoep.connectorplugin:bukkit:1.5-SNAPSHOT"
+
+    implementation "com.zaxxer:HikariCP:4.0.3"
+    collectJars ("com.zaxxer:HikariCP:4.0.3") {
+        exclude group: "org.slf4j"
+    }
 }
 
 def targetJavaVersion = 8
+
+jar {
+    from {
+        configurations.collectJars.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    }
+}
+
 java {
     def javaVersion = JavaVersion.toVersion(targetJavaVersion)
     sourceCompatibility = javaVersion
