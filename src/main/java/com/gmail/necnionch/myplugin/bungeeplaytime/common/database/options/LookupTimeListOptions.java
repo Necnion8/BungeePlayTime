@@ -73,6 +73,7 @@ public class LookupTimeListOptions extends LookupTimeOptions {
         output.writeLong(afters);
         output.writeInt(count);
         output.writeInt(offset);
+        output.writeBoolean(isCurrentServer());  // v1.3~
     }
 
     public static LookupTimeListOptions deserializeFrom(ByteArrayDataInput input) {
@@ -82,6 +83,28 @@ public class LookupTimeListOptions extends LookupTimeOptions {
         int count = input.readInt();
         int offset = input.readInt();
         return new LookupTimeListOptions(count, offset, totalTime, (serverName.isEmpty()) ? null : serverName, afters);
+    }
+
+    public static LookupTimeListOptions deserializeFrom(ByteArrayDataInput input, @Nullable String senderName) {
+        boolean totalTime = input.readBoolean();
+        String serverName = input.readUTF();
+        long afters = input.readLong();
+        int count = input.readInt();
+        int offset = input.readInt();
+        boolean currentServer;
+        try {
+            currentServer = input.readBoolean();  // v1.3~
+        } catch (Throwable e) {  // EOF?
+            currentServer = false;
+        }
+
+        if (serverName.isEmpty())
+            serverName = null;
+
+        if (senderName != null && currentServer)
+            serverName = senderName;
+
+        return new LookupTimeListOptions(count, offset, totalTime, serverName, afters);
     }
 
     public LookupTimeListOptions copyTo(@Nullable LookupTimeListOptions options) {

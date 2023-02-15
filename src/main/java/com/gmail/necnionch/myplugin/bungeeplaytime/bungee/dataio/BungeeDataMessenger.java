@@ -137,13 +137,13 @@ public class BungeeDataMessenger implements Listener {
         messenger.registerHandler(new SettingChangeResponse.Handler());
 
         PlayTimeAPI api = ((PlayTimeAPI) plugin);
-        messenger.registerHandler(new GetPlayerTimeRequest.Handler(api));
-        messenger.registerHandler(new GetPlayerTimeEntriesRequest.Handler(api));
-        messenger.registerHandler(new GetPlayerTimeRankingRequest.Handler(api));
-        messenger.registerHandler(new GetPlayerFirstTimeRequest.Handler(api));
-        messenger.registerHandler(new GetPlayerLastTimeRequest.Handler(api));
-        messenger.registerHandler(new GetPlayerCountRequest.Handler(api));
-        messenger.registerHandler(new GetPlayerOnlineDaysRequest.Handler(api));
+        messenger.registerHandler(new GetPlayerTimeRequest.Handler(api, messenger));
+        messenger.registerHandler(new GetPlayerTimeEntriesRequest.Handler(api, messenger));
+        messenger.registerHandler(new GetPlayerTimeRankingRequest.Handler(api, messenger));
+        messenger.registerHandler(new GetPlayerFirstTimeRequest.Handler(api, messenger));
+        messenger.registerHandler(new GetPlayerLastTimeRequest.Handler(api, messenger));
+        messenger.registerHandler(new GetPlayerCountRequest.Handler(api, messenger));
+        messenger.registerHandler(new GetPlayerOnlineDaysRequest.Handler(api, messenger));
         messenger.registerHandler(new GetPlayerNameRequest.Handler(api));
 
         messengers.put(serverInfo.getName(), messenger);
