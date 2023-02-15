@@ -12,6 +12,7 @@ import net.md_5.bungee.api.plugin.Listener;
 import net.md_5.bungee.event.EventHandler;
 
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 
 public class PlayerListener implements Listener {
@@ -35,7 +36,9 @@ public class PlayerListener implements Listener {
         if (fromServer != null && fromServer.getPlayers().size() <= 1) {
             plugin.getMessenger().removeActive(fromServer);
         }
-        plugin.getMessenger().sendPing(toServer);
+
+        plugin.getProxy().getScheduler().schedule(plugin, () ->
+                plugin.getMessenger().sendPing(toServer), 1000, TimeUnit.MILLISECONDS);
     }
 
     @EventHandler
