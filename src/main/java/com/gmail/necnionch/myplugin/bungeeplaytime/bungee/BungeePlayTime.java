@@ -107,6 +107,20 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
 
     @Override
     public void onDisable() {
+        // commit current
+        if (database != null) {
+            for (ProxiedPlayer player : getProxy().getPlayers()) {
+                if (players.containsKey(player.getUniqueId())) {
+                    try {
+                        removePlayer(player.getUniqueId());
+                    } catch (Throwable e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+        players.clear();
+
         // unload
         if (messenger != null)
             messenger.unregister();
