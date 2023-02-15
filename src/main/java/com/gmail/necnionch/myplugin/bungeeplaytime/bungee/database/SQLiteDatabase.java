@@ -422,7 +422,7 @@ public class SQLiteDatabase implements Database {
             ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
-                return Optional.of(rs.getNString("name"));
+                return Optional.of(rs.getString("name"));
             }
         }
         return Optional.empty();
@@ -439,8 +439,8 @@ public class SQLiteDatabase implements Database {
 
             if (rs.next()) {
                 UUID uuid;
-                String sUUID = rs.getNString("uuid");
-                String name = rs.getNString("name");
+                String sUUID = rs.getString("uuid");
+                String name = rs.getString("name");
                 try {
                     uuid = UUID.fromString(sUUID);
                 } catch (IllegalArgumentException e) {
