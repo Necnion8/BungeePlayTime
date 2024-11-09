@@ -1,0 +1,4 @@
+# Specify communication service
+#   bungee          : available only when the player is connected.
+#   ConnectorPlugin : ConnectorPlugin must be installed on proxy and server.
+communication-service: bungee

@@ -2,4 +2,4 @@ name: BungeePlayTime
 version: '${version}'
 main: com.gmail.necnionch.myplugin.bungeeplaytime.bungee.BungeePlayTime
 author: Necnion8
-softDepends: [BungeeTabListPlus]
+softDepends: [BungeeTabListPlus, ConnectorPlugin]

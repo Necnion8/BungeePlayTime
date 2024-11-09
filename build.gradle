@@ -1,7 +1,7 @@
 apply plugin: 'java'
 
 group = 'com.gmail.necnionch.myplugin'
-version = '1.2.0-SNAPSHOT'
+version = '1.3.0'
 
 repositories {
     mavenCentral()
@@ -17,11 +17,15 @@ repositories {
 
     maven { url "https://repo.dmulloy2.net/repository/public/" }
 
-//    mavenCentral()
-//    maven {
-//        url "https://nexus.codecrafter47.de/content/repositories/public/"
-//    }
+    maven {
+        name = "minebench-repo"
+        url = "https://repo.minebench.de/"
+    }
 
+}
+
+configurations {
+    collectJars
 }
 
 dependencies {
@@ -32,9 +36,26 @@ dependencies {
     implementation(files("libs/AFKPlus.jar"))
 //    implementation "codecrafter47.bungeetablistplus:bungeetablistplus-api-bungee:2.7.0"
     implementation(files("libs/BungeeTabListPlus-3.4.4-fixvers.jar"))
+
+    implementation "de.themoep.connectorplugin:bungee:1.5-SNAPSHOT"
+    implementation "de.themoep.connectorplugin:bukkit:1.5-SNAPSHOT"
+
+    implementation "com.zaxxer:HikariCP:4.0.3"
+    collectJars ("com.zaxxer:HikariCP:4.0.3") {
+        exclude group: "org.slf4j"
+    }
 }
 
 def targetJavaVersion = 8
+
+jar {
+    from {
+        configurations.collectJars.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    }
+}
+
 java {
     def javaVersion = JavaVersion.toVersion(targetJavaVersion)
     sourceCompatibility = javaVersion

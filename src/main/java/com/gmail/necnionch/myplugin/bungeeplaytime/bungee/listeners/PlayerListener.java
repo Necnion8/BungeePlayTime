@@ -2,6 +2,7 @@ package com.gmail.necnionch.myplugin.bungeeplaytime.bungee.listeners;
 
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.BungeePlayTime;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.AFKState;
+import com.google.common.collect.Sets;
 import net.md_5.bungee.api.config.ServerInfo;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
 import net.md_5.bungee.api.event.ChatEvent;
@@ -10,9 +11,13 @@ import net.md_5.bungee.api.event.ServerConnectedEvent;
 import net.md_5.bungee.api.plugin.Listener;
 import net.md_5.bungee.event.EventHandler;
 
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
 
 public class PlayerListener implements Listener {
     private final BungeePlayTime plugin;
+    private final Set<ProxiedPlayer> joinedPlayers = Sets.newHashSet();
 
     public PlayerListener(BungeePlayTime plugin) {
         this.plugin = plugin;
@@ -25,16 +30,24 @@ public class PlayerListener implements Listener {
         ServerInfo fromServer = (player.getServer() != null) ? player.getServer().getInfo() : null;
         ServerInfo toServer = event.getServer().getInfo();
 
+        joinedPlayers.add(player);
+
         plugin.insertPlayer(player, System.currentTimeMillis(), toServer.getName(), AFKState.UNKNOWN);
         if (fromServer != null && fromServer.getPlayers().size() <= 1) {
             plugin.getMessenger().removeActive(fromServer);
         }
-        plugin.getMessenger().sendPing(toServer);
+
+        plugin.getProxy().getScheduler().schedule(plugin, () ->
+                plugin.getMessenger().sendPing(toServer), 1000, TimeUnit.MILLISECONDS);
     }
 
     @EventHandler
     public void onQuit(PlayerDisconnectEvent event) {
         ProxiedPlayer player = event.getPlayer();
+
+        if (!joinedPlayers.remove(player))  // 即抜け対応
+            return;
+
         plugin.removePlayer(player.getUniqueId());
 
         if (player.getServer() != null) {

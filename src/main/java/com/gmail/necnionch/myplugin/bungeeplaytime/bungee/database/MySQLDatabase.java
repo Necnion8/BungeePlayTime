@@ -10,6 +10,8 @@ import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.result.Player
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 
 import java.sql.*;
 import java.util.*;
@@ -22,7 +24,7 @@ public class MySQLDatabase implements Database {
     private final String address;
     private final Map<String, String> dbOptions;
     private final Logger log;
-    private Connection connection;
+    private HikariDataSource hikari;
     private final Map<UUID, String> cachedPlayerNames = Collections.synchronizedMap(Maps.newLinkedHashMap());
 
 
@@ -41,36 +43,34 @@ public class MySQLDatabase implements Database {
 
 
     @Override
-    public boolean openConnection() throws SQLException {
+    public boolean openConnection() {
         if (!isClosed())
             throw new IllegalStateException("already opened");
 
         String url = "jdbc:mysql://" + address + "/" + database;
-        Properties properties = new Properties();
-        properties.setProperty("user", username);
-        properties.setProperty("password", password);
-        dbOptions.forEach(properties::setProperty);
-        connection = DriverManager.getConnection(url, properties);
+        HikariConfig config = new HikariConfig();
+        config.setPoolName("BPT-HikariPool");
+        config.setDriverClassName("com.mysql.cj.jdbc.Driver");
+        config.setJdbcUrl(url);
+        config.addDataSourceProperty("user", username);
+        config.addDataSourceProperty("password", password);
+        dbOptions.forEach(config::addDataSourceProperty);
+        config.setConnectionInitSql("SELECT 1");
+
+        hikari = new HikariDataSource(config);
         return true;
     }
 
     @Override
     public boolean isClosed() {
-        if (connection == null)
-            return true;
-
-        try {
-            return connection.isClosed();
-        } catch (SQLException e) {
-            return true;
-        }
+        return hikari == null || hikari.isClosed();
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         if (!isClosed()) {
-            connection.close();
-            connection = null;
+            hikari.close();
+            hikari = null;
         }
     }
 
@@ -80,23 +80,25 @@ public class MySQLDatabase implements Database {
         if (isClosed())
             throw new IllegalStateException("connection is closed");
 
-        String sql = "CREATE TABLE IF NOT EXISTS users (uuid VARCHAR(36) UNIQUE, name TEXT, lastTime BIGINT)";
-        try (Statement stmt = connection.createStatement()) {
-            stmt.executeUpdate(sql);
-        }
+        try (Connection connection = hikari.getConnection()) {
+            String sql = "CREATE TABLE IF NOT EXISTS users (uuid VARCHAR(36) UNIQUE, name TEXT, lastTime BIGINT)";
+            try (Statement stmt = connection.createStatement()) {
+                stmt.executeUpdate(sql);
+            }
 
-        sql = "CREATE TABLE IF NOT EXISTS times (uuid VARCHAR(36), startTime BIGINT, time BIGINT, server TEXT, isAFK INT)";
-        try (Statement stmt = connection.createStatement()) {
-            stmt.executeUpdate(sql);
-        }
+            sql = "CREATE TABLE IF NOT EXISTS times (uuid VARCHAR(36), startTime BIGINT, time BIGINT, server TEXT, isAFK INT)";
+            try (Statement stmt = connection.createStatement()) {
+                stmt.executeUpdate(sql);
+            }
 
-        // v2: add columns
-        DatabaseMetaData meta = connection.getMetaData();
-        try (ResultSet rs = meta.getColumns(null, null, "users", "lastTime")) {
-            if (!rs.next()) {
-                sql = "ALTER TABLE `users` ADD `lastTime` BIGINT NOT NULL DEFAULT 0";
-                try (Statement stmt = connection.createStatement()) {
-                    stmt.executeUpdate(sql);
+            // v2: add columns
+            DatabaseMetaData meta = connection.getMetaData();
+            try (ResultSet rs = meta.getColumns(null, null, "users", "lastTime")) {
+                if (!rs.next()) {
+                    sql = "ALTER TABLE `users` ADD `lastTime` BIGINT NOT NULL DEFAULT 0";
+                    try (Statement stmt = connection.createStatement()) {
+                        stmt.executeUpdate(sql);
+                    }
                 }
             }
         }
@@ -108,7 +110,8 @@ public class MySQLDatabase implements Database {
             throw new IllegalStateException("connection is closed");
 
         String sql = "INSERT INTO `times` VALUES (?, ?, ?, ?, ?)";
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (Connection connection = hikari.getConnection();
+             PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, playerId.toString());
             stmt.setLong(2, startTime);
             stmt.setLong(3, time);
@@ -137,7 +140,8 @@ public class MySQLDatabase implements Database {
                 + "FROM `times` "
                 + "WHERE `uuid` = ?" + paramAfters + paramServer;
 
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (Connection connection = hikari.getConnection();
+             PreparedStatement stmt = connection.prepareStatement(sql)) {
             int pIndex = 1;
             stmt.setString(pIndex++, playerId.toString());
 
@@ -188,7 +192,8 @@ public class MySQLDatabase implements Database {
                 + "ORDER BY `" + targetColumn + "` DESC "
                 + paramCount + paramOffset;
 
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (Connection connection = hikari.getConnection();
+             PreparedStatement stmt = connection.prepareStatement(sql)) {
             int pIndex = 1;
 
             if (options.getAfters().isPresent())
@@ -238,7 +243,8 @@ public class MySQLDatabase implements Database {
         sql += params.map(s -> " AND " + s).orElse("");
         sql += " LIMIT 1";
 
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (Connection connection = hikari.getConnection();
+             PreparedStatement stmt = connection.prepareStatement(sql)) {
             int pIndex = 1;
             stmt.setString(pIndex++, playerId.toString());
 
@@ -278,7 +284,8 @@ public class MySQLDatabase implements Database {
                 + "        `uuid` = ?" + params.map(s -> " AND " + s).orElse("")
                 + "    )"
                 + ") AS `totals`";
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (Connection connection = hikari.getConnection();
+             PreparedStatement stmt = connection.prepareStatement(sql)) {
             int pIndex = 1;
 
             if (options.getAfters().isPresent())
@@ -310,7 +317,8 @@ public class MySQLDatabase implements Database {
         String paramServer = (options.getServerName().isPresent()) ? " AND `server` = ?" : "";
 
         String sql = "SELECT `startTime` FROM `times` WHERE `uuid` = ?" + paramAfters + paramServer + " ORDER BY `startTime` ASC LIMIT 1";
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (Connection connection = hikari.getConnection();
+             PreparedStatement stmt = connection.prepareStatement(sql)) {
             int pIndex = 1;
             stmt.setString(pIndex++, playerId.toString());
 
@@ -336,7 +344,8 @@ public class MySQLDatabase implements Database {
         String paramServer = (options.getServerName().isPresent()) ? " AND `server` = ?" : "";
 
         String sql = "SELECT `startTime`, `time` FROM `times` WHERE `uuid` = ?" + paramAfters + paramServer + " ORDER BY `startTime` DESC LIMIT 1";
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (Connection connection = hikari.getConnection();
+             PreparedStatement stmt = connection.prepareStatement(sql)) {
             int pIndex = 1;
             stmt.setString(pIndex++, playerId.toString());
 
@@ -373,7 +382,8 @@ public class MySQLDatabase implements Database {
         if (!wheres.isEmpty())
             sql += " WHERE " + String.join(" AND ", wheres);
 
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (Connection connection = hikari.getConnection();
+             PreparedStatement stmt = connection.prepareStatement(sql)) {
             for (int i = 0; i < wheres.size(); i++) {
                 stmt.setObject(1+i, params.get(i));
             }
@@ -396,7 +406,8 @@ public class MySQLDatabase implements Database {
 
         int defaultTimezone = TimeZone.getDefault().getOffset(0);
         String sql = "SELECT COUNT(DISTINCT FLOOR((`startTime` + ?) / 86400000)) as `days` FROM `times` WHERE `uuid` = ?" + paramAfters + paramServer;
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (Connection connection = hikari.getConnection();
+             PreparedStatement stmt = connection.prepareStatement(sql)) {
             int pIndex = 1;
 
             stmt.setInt(pIndex++, defaultTimezone);
@@ -422,7 +433,8 @@ public class MySQLDatabase implements Database {
             return Optional.empty();
 
         String sql = "SELECT name, uuid FROM `users` WHERE uuid=? LIMIT 1";
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (Connection connection = hikari.getConnection();
+             PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, playerId.toString());
             ResultSet rs = stmt.executeQuery();
 
@@ -438,7 +450,8 @@ public class MySQLDatabase implements Database {
             return Optional.empty();
 
         String sql = "SELECT * FROM `users` WHERE LOWER(name) = ? ORDER BY `lastTime` DESC LIMIT 1";
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (Connection connection = hikari.getConnection();
+             PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, playerName.toLowerCase(Locale.ROOT));
             ResultSet rs = stmt.executeQuery();
 
@@ -465,7 +478,8 @@ public class MySQLDatabase implements Database {
             throw new IllegalStateException("connection is closed");
 
         String sql = "INSERT INTO `users` VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE `name` = ?, `lastTime` = ?";
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (Connection connection = hikari.getConnection();
+             PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, playerId.toString());
             stmt.setString(2, playerName);
             stmt.setLong(3, System.currentTimeMillis());

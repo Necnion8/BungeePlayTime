@@ -3,6 +3,9 @@ players:
   played-in-unknown-state: false
   afk-minutes: 5
 
+db-type: mysql
+# available: mysql, sqlite
+
 database:
   mysql:
     username: root
@@ -11,3 +14,10 @@ database:
     database: "bungeeplaytime"
     options:
       autoReconnect: true
+
+  sqlite:
+    address: database.db
+    options:
+
+# Use ConnectorPlugin in API communication
+enable-connector-plugin-support: true

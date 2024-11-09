@@ -4,10 +4,12 @@ import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.commands.AFKPlayersCom
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.commands.MainCommand;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.Database;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.MySQLDatabase;
+import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.database.SQLiteDatabase;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.dataio.BungeeDataMessenger;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.dataio.ServerMessenger;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.errors.DatabaseError;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.hooks.BungeeTabListPlusVariable;
+import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.hooks.ConnectorPluginBridge;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.listeners.PlayerListener;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.listeners.PluginMessageListener;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.AFKState;
@@ -32,6 +34,7 @@ import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packets.Setting
 import com.google.common.collect.Maps;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
 import net.md_5.bungee.api.plugin.Plugin;
+import org.jetbrains.annotations.Nullable;
 
 import java.sql.SQLException;
 import java.util.*;
@@ -47,6 +50,7 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
     private final Map<UUID, PlayerTime> players = Maps.newConcurrentMap();
     private BungeeDataMessenger messenger;
     private BungeeTabListPlusVariable btlpVariable;
+    private final ConnectorPluginBridge connectorPluginBridge = new ConnectorPluginBridge(this);
 
     @Override
     public void onLoad() {
@@ -70,8 +74,15 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
         // database
         connectDatabase();
 
+        // init connector
+        if (mainConfig.isConnectorPluginSupport()) {
+            connectorPluginBridge.hook();
+            if (connectorPluginBridge.isEnabled())
+                connectorPluginBridge.registerMessenger();
+        }
+
         // init
-        messenger = BungeeDataMessenger.register(this, BPTUtil.MESSAGE_CHANNEL_DATA, this);
+        messenger = BungeeDataMessenger.register(this, BPTUtil.MESSAGE_CHANNEL_DATA, this, connectorPluginBridge);
         messenger.updateServerMessengers();
 
         getProxy().getPlayers().forEach(p ->
@@ -96,12 +107,34 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
 
     @Override
     public void onDisable() {
+        // commit current
+        if (database != null) {
+            for (ProxiedPlayer player : getProxy().getPlayers()) {
+                if (players.containsKey(player.getUniqueId())) {
+                    try {
+                        removePlayer(player.getUniqueId());
+                    } catch (Throwable e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+        players.clear();
+
         // unload
-        messenger.unregister();
+        if (messenger != null)
+            messenger.unregister();
         messenger = null;
+
         getProxy().unregisterChannel(BPTUtil.MESSAGE_CHANNEL_AFK_STATE);
 
         // hooks
+        try {
+            connectorPluginBridge.unhook();
+        } catch (Throwable e) {
+            getLogger().warning("Failed to unhook to ConnectorPlugin: " + e.getMessage());
+        }
+
         try {
             if (btlpVariable != null)
                 btlpVariable.unregister();
@@ -181,7 +214,21 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
             }
         }
 
-        database = new MySQLDatabase(mainConfig.getMySQL(), getLogger());
+        database = null;
+        MainConfig.DBType dbType = mainConfig.getDatabaseType();
+        switch (dbType) {
+            case MYSQL: {
+                database = new MySQLDatabase(mainConfig.getMySQL(), getLogger());
+                break;
+            }
+            case SQLITE: {
+                database = new SQLiteDatabase(getDataFolder(), mainConfig.getSQLite(), getLogger());
+                break;
+            }
+            default:
+                throw new IllegalArgumentException("Unknown database type: " + dbType);
+        }
+
         try {
             if (database.openConnection())
                 database.init();
@@ -257,6 +304,10 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
         getProxy().getScheduler().runAsync(this, () -> {
             try {
                 Optional<PlayerTimeResult> result = database.lookupTime(playerId, options);
+
+                if (result.isPresent() && players.containsKey(playerId))
+                    players.get(playerId).addCurrentTimesTo(result.get());
+
                 f.complete(result);
             } catch (SQLException e) {
                 getLogger().log(Level.SEVERE, "Exception in lookupTime", e);
@@ -277,7 +328,14 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
 
         getProxy().getScheduler().runAsync(this, () -> {
             try {
-                f.complete(database.lookupTimeTops(options));
+                PlayerTimeEntries result = database.lookupTimeTops(options);
+
+                result.getEntries().forEach(r -> {
+                    if (players.containsKey(r.getPlayerId()))
+                        players.get(r.getPlayerId()).addCurrentTimesTo(r);
+                });
+
+                f.complete(result);
 
             } catch (SQLException e) {
                 getLogger().log(Level.SEVERE, "Exception in lookupTimeTops", e);
@@ -415,10 +473,9 @@ public final class BungeePlayTime extends Plugin implements PlayTimeAPI, BungeeD
 
 
     public Map<UUID, String> getPlayerNameCache() {
-        if (database instanceof MySQLDatabase) {
-            return ((MySQLDatabase) database).cachedPlayerNames();
-        }
-        return Collections.emptyMap();
+        return Optional.ofNullable(database)
+                .map(Database::cachedPlayerNames)
+                .orElseGet(Collections::emptyMap);
     }
 
 

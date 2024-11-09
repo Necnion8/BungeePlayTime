@@ -69,6 +69,7 @@ public class LookupTimeOptions {
         output.writeBoolean(totalTime);
         output.writeUTF((serverName != null) ? serverName : "");
         output.writeLong(afters);
+        output.writeBoolean(currentServer);  // v1.3~
     }
 
     public static LookupTimeOptions deserializeFrom(ByteArrayDataInput input) {
@@ -76,6 +77,26 @@ public class LookupTimeOptions {
         String serverName = input.readUTF();
         long afters = input.readLong();
         return new LookupTimeOptions(totalTime, (serverName.isEmpty()) ? null : serverName, afters);
+    }
+
+    public static LookupTimeOptions deserializeFrom(ByteArrayDataInput input, @Nullable String senderName) {
+        boolean totalTime = input.readBoolean();
+        String serverName = input.readUTF();
+        long afters = input.readLong();
+        boolean currentServer;
+        try {
+            currentServer = input.readBoolean();  // v1.3~
+        } catch (Throwable e) {  // EOF?
+            currentServer = false;
+        }
+
+        if (serverName.isEmpty())
+            serverName = null;
+
+        if (senderName != null && currentServer)
+            serverName = senderName;
+
+        return new LookupTimeOptions(totalTime, serverName, afters);
     }
 
     public LookupTimeOptions copyTo(@Nullable LookupTimeOptions options) {

@@ -2,10 +2,12 @@ package com.gmail.necnionch.myplugin.bungeeplaytime.bukkit;
 
 import com.gmail.necnionch.myplugin.bungeeplaytime.bukkit.dataio.BukkitDataMessenger;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bukkit.hooks.AFKPlusBridge;
+import com.gmail.necnionch.myplugin.bungeeplaytime.bukkit.hooks.ConnectorPluginBridge;
 import com.gmail.necnionch.myplugin.bungeeplaytime.bukkit.listeners.PlayerListener;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.AFKState;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.BPTUtil;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.CommandPlatform;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.CommunicationServiceType;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.command.CommandBukkit;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.commands.OnlineTimeCommand;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.commands.OnlineTimeTopCommand;
@@ -16,10 +18,12 @@ import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.options.Looku
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.result.PlayerName;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.result.PlayerTimeEntries;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.database.result.PlayerTimeResult;
+import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.DataMessenger;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.Request;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.Response;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packets.*;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -28,8 +32,10 @@ import java.util.concurrent.CompletableFuture;
 public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
     private static PlayTimeAPI api;
     private final CommandPlatform commandPlatform = new BukkitCommandPlatform();
-    private BukkitDataMessenger messenger;
+    private final MainConfig mainConfig = new MainConfig(this);
+    private DataMessenger messenger;
     private final AFKPlusBridge afkPlusBridge = new AFKPlusBridge(this);
+    private @Nullable ConnectorPluginBridge connectorPluginBridge;
     private int afkMinutes = 5;
     private boolean bungeeConnected;
     private String currentServerName;
@@ -37,11 +43,30 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
     @Override
     public void onEnable() {
         api = this;
+        mainConfig.load();
+
         // events
         getServer().getPluginManager().registerEvents(new PlayerListener(this), this);
 
+        // init connector
+        CommunicationServiceType sType = mainConfig.getCommunicationService();
+        if (CommunicationServiceType.CONNECTOR_PLUGIN.equals(sType)) {
+            try {
+                connectorPluginBridge = new ConnectorPluginBridge(this);
+                if (connectorPluginBridge.hook()) {
+                    messenger = connectorPluginBridge.registerMessenger(BPTUtil.MESSAGE_CHANNEL_DATA, this::onRequest);
+                } else {
+                    getLogger().warning("Failed to register ConnectorMessenger");
+                }
+            } catch (Throwable e) {
+                getLogger().warning("Failed to hook ConnectorPlugin: " + e.getMessage());
+            }
+        }
+
         // init
-        messenger = BukkitDataMessenger.register(this, BPTUtil.MESSAGE_CHANNEL_DATA, this::onRequest);
+        if (messenger == null)
+            messenger = BukkitDataMessenger.register(this, BPTUtil.MESSAGE_CHANNEL_DATA, this::onRequest);
+
         getServer().getScheduler().runTaskLater(this, () -> {
             if (!getServer().getOnlinePlayers().isEmpty())
                 messenger.send(new PingRequest()).whenComplete((ret, err) -> {
@@ -66,10 +91,15 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
 
     @Override
     public void onDisable() {
-        messenger.unregister();
+        if (messenger instanceof BukkitDataMessenger) {
+            ((BukkitDataMessenger) messenger).unregister();
+        }
         messenger = null;
 
         afkPlusBridge.unhook();
+
+        if (connectorPluginBridge != null)
+            connectorPluginBridge.unhook();
     }
 
     public static PlayTimeAPI getAPI() {
@@ -77,7 +107,7 @@ public class BungeePlayTime extends JavaPlugin implements PlayTimeAPI {
     }
 
 
-    public BukkitDataMessenger getMessenger() {
+    public DataMessenger getMessenger() {
         return messenger;
     }
 

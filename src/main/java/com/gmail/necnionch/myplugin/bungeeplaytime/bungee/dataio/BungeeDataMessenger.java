@@ -1,6 +1,7 @@
 package com.gmail.necnionch.myplugin.bungeeplaytime.bungee.dataio;
 
 import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.PlayTimeAPI;
+import com.gmail.necnionch.myplugin.bungeeplaytime.bungee.hooks.ConnectorPluginBridge;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.DataMessenger;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.Request;
 import com.gmail.necnionch.myplugin.bungeeplaytime.common.dataio.packet.Response;
@@ -31,17 +32,19 @@ public class BungeeDataMessenger implements Listener {
     private final Set<ServerMessenger> actives = Sets.newConcurrentHashSet();
     private final RequestListener listener;
     private final Timer timer;
+    private final ConnectorPluginBridge connectorBridge;
 
-    public BungeeDataMessenger(Plugin plugin, String channelName, RequestListener listener) {
+    public BungeeDataMessenger(Plugin plugin, String channelName, RequestListener listener, ConnectorPluginBridge connectorBridge) {
         this.plugin = plugin;
         this.channelName = channelName;
         this.listener = listener;
         this.executor = (task) -> ProxyServer.getInstance().getScheduler().runAsync(plugin, task);
         this.timer = Timer.createOfBungee(plugin);
+        this.connectorBridge = connectorBridge;
     }
 
-    public static BungeeDataMessenger register(Plugin plugin, String channelName, RequestListener listener) {
-        BungeeDataMessenger messenger = new BungeeDataMessenger(plugin, channelName, listener);
+    public static BungeeDataMessenger register(Plugin plugin, String channelName, RequestListener listener, ConnectorPluginBridge connectorBridge) {
+        BungeeDataMessenger messenger = new BungeeDataMessenger(plugin, channelName, listener, connectorBridge);
         plugin.getProxy().getPluginManager().registerListener(plugin, messenger);
         plugin.getProxy().registerChannel(channelName);
         return messenger;
@@ -120,7 +123,12 @@ public class BungeeDataMessenger implements Listener {
     }
 
     private void createMessenger(ServerInfo serverInfo) {
-        ServerMessenger messenger = new ServerMessenger(this, serverInfo, listener);
+        ServerMessenger messenger;
+        if (connectorBridge.isEnabled()) {
+            messenger = new ConnectorServerMessenger(this, serverInfo, listener, connectorBridge.getMessenger());
+        } else {
+            messenger = new ServerMessenger(this, serverInfo, listener);
+        }
 
         messenger.registerHandler(new PingRequest.Handler());
         messenger.registerHandler(new PingResponse.Handler());
@@ -129,13 +137,13 @@ public class BungeeDataMessenger implements Listener {
         messenger.registerHandler(new SettingChangeResponse.Handler());
 
         PlayTimeAPI api = ((PlayTimeAPI) plugin);
-        messenger.registerHandler(new GetPlayerTimeRequest.Handler(api));
-        messenger.registerHandler(new GetPlayerTimeEntriesRequest.Handler(api));
-        messenger.registerHandler(new GetPlayerTimeRankingRequest.Handler(api));
-        messenger.registerHandler(new GetPlayerFirstTimeRequest.Handler(api));
-        messenger.registerHandler(new GetPlayerLastTimeRequest.Handler(api));
-        messenger.registerHandler(new GetPlayerCountRequest.Handler(api));
-        messenger.registerHandler(new GetPlayerOnlineDaysRequest.Handler(api));
+        messenger.registerHandler(new GetPlayerTimeRequest.Handler(api, messenger));
+        messenger.registerHandler(new GetPlayerTimeEntriesRequest.Handler(api, messenger));
+        messenger.registerHandler(new GetPlayerTimeRankingRequest.Handler(api, messenger));
+        messenger.registerHandler(new GetPlayerFirstTimeRequest.Handler(api, messenger));
+        messenger.registerHandler(new GetPlayerLastTimeRequest.Handler(api, messenger));
+        messenger.registerHandler(new GetPlayerCountRequest.Handler(api, messenger));
+        messenger.registerHandler(new GetPlayerOnlineDaysRequest.Handler(api, messenger));
         messenger.registerHandler(new GetPlayerNameRequest.Handler(api));
 
         messengers.put(serverInfo.getName(), messenger);
@@ -176,10 +184,7 @@ public class BungeeDataMessenger implements Listener {
 
     public void sendPing(ServerInfo serverInfo) {
         ServerMessenger messenger = getMessenger(serverInfo);
-        if (messenger != null) {
-            plugin.getProxy().getScheduler().schedule(plugin, () ->
-                    sendPing(messenger), 100, TimeUnit.MILLISECONDS);
-        }
+        sendPing(messenger);
     }
 
     private void sendPing(ServerMessenger messenger) {
