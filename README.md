@@ -1,5 +1,5 @@
 # BungeePlayTime
-AFKプラグインと連携し、プレイヤーのログイン時間とプレイ時間を集計するプラグイン
+プレイヤーのオンライン時間とプレイ時間を集計するプラグイン
 
 ## 前提
 - BungeeCord
@@ -10,31 +10,18 @@ AFKプラグインと連携し、プレイヤーのログイン時間とプレ�
     - [BungeeTabListPlus](https://www.spigotmc.org/resources/bungeetablistplus.313/) (プレースホルダ連携)
 
 ## コマンドと権限
-- 実行者のプレイ時間を表示 - `/playtime`, `/pt`
-> 権限: `bungeeplaytime.command.playtime` (default: true)<br>
-> 引数: `/pt (player)`, `/pt top`<br>
 
-- プレイ時間ランキングを表示 - `/playtimetop`, `/pttop`
-> 権限: `bungeeplaytime.command.playtimetop` (default: OP)
-<br>
-
-- 実行者のオンライン時間を表示 - `/onlinetime`, `/ot`
-> 権限: `bungeeplaytime.command.onlinetime` (default: true)<br>
-> 引数: `/ot (player)`, `/ot top`
-<br>
-
-- オンライン時間ランキングを表示 - `/onlinetimetop`, `/ottop`
-> 権限: `bungeeplaytime.command.onlinetimetop` (default: OP)
-<br>
-
-- 管理コマンド - `/bungeeplaytime`, `/bpt`
-> 権限: `bungeeplaytime.command.bungeeplaytime` (BungeeCordのみ)<br>
-> 引数: `/bpt info [player/uuid]` - 指定されたプレイヤーの情報を表示<br>
-> 引数: `/bpt reload` - 設定の再読み込み
-<br>
-
-- AFKプレイヤー一覧 - `/afkplayers`
-> 権限: `bungeeplaytime.command.afkplayers` (BungeeCordのみ)<br>
+| コマンド                          | サブコマンド             | 説明            | 権限                                    | デフォルト<sup>※1</sup> | 短縮名             |
+|:------------------------------|--------------------|:--------------|:--------------------------------------|:------------------:|:----------------|
+| /playtime [player]            |                    | 実行者のプレイ時間     | bungeeplaytime.command.playtime       |        YES         | /pt             |
+| /playtimetop                  |                    | プレイ時間ランキング    | bungeeplaytime.command.playtimetop    |        OPのみ        | /pttop, /pt top |
+| /onlinetime [player]          |                    | 実行者のオンライン時間   | bungeeplaytime.command.onlinetime     |        YES         | /ot             |
+| /onlinetimetop                |                    | オンライン時間ランキング  | bungeeplaytime.command.onlinetimetop  |        OPのみ        | /ottop, /ot top |
+| /afkplayers <sup>※1</sup>     |                    | AFKプレイヤー一覧    | bungeeplaytime.command.afkplayers     |                    |                 |
+| /bungeeplaytime <sup>※1</sup> |                    | 管理者用プラグインコマンド | bungeeplaytime.command.bungeeplaytime |                    | /bpt            |
+|                               | info [player/uuid] | プレイヤーの情報を表示   |                                       |                    |                 |
+|                               | reload             | 設定の再読み込み      |                                       |                    |
+<sup>※1</sup> BungeeCordコマンドのみ
 
 ## 設定
 [BungeeCord config.yml](..%2Fsrc%2Fmain%2Fresources%2Fbungee-config.yml) | [Bukkit config.yml](..%2Fsrc%2Fmain%2Fresources%2Fbukkit-config.yml)
@@ -71,9 +58,9 @@ enable-connector-plugin-support: true
 
 
 ## API
-- Bungee/Bukkit 共通メソッド [IPlayTimeAPI.java](..%2Fsrc%2Fmain%2Fjava%2Fcom%2Fgmail%2Fnecnionch%2Fmyplugin%2Fbungeeplaytime%2Fcommon%2FIPlayTimeAPI.java)<br>
-- Bukkitのみメソッド [PlayTimeAPI.java](..%2Fsrc%2Fmain%2Fjava%2Fcom%2Fgmail%2Fnecnionch%2Fmyplugin%2Fbungeeplaytime%2Fbukkit%2FPlayTimeAPI.java)<br>
-- Bungeeのみメソッド [PlayTimeAPI.java](..%2Fsrc%2Fmain%2Fjava%2Fcom%2Fgmail%2Fnecnionch%2Fmyplugin%2Fbungeeplaytime%2Fbungee%2FPlayTimeAPI.java)
+- Bungee/Bukkit 共通メソッド - [common/IPlayTimeAPI.java](..%2Fsrc%2Fmain%2Fjava%2Fcom%2Fgmail%2Fnecnionch%2Fmyplugin%2Fbungeeplaytime%2Fcommon%2FIPlayTimeAPI.java)<br>
+- Bukkit - [bukkit/PlayTimeAPI.java](..%2Fsrc%2Fmain%2Fjava%2Fcom%2Fgmail%2Fnecnionch%2Fmyplugin%2Fbungeeplaytime%2Fbukkit%2FPlayTimeAPI.java)<br>
+- Bungee - [bungee/PlayTimeAPI.java](..%2Fsrc%2Fmain%2Fjava%2Fcom%2Fgmail%2Fnecnionch%2Fmyplugin%2Fbungeeplaytime%2Fbungee%2FPlayTimeAPI.java)
 
 ### 例: プレイ時間ランクの取得
 > ```java
