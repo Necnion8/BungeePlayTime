@@ -11,16 +11,16 @@
 
 ## コマンドと権限
 
-| コマンド                          | サブコマンド             | 説明            | 権限                                    | デフォルト<sup>※1</sup> | 短縮名             |
-|:------------------------------|--------------------|:--------------|:--------------------------------------|:------------------:|:----------------|
-| /playtime [player]            |                    | 実行者のプレイ時間     | bungeeplaytime.command.playtime       |        YES         | /pt             |
-| /playtimetop                  |                    | プレイ時間ランキング    | bungeeplaytime.command.playtimetop    |        OPのみ        | /pttop, /pt top |
-| /onlinetime [player]          |                    | 実行者のオンライン時間   | bungeeplaytime.command.onlinetime     |        YES         | /ot             |
-| /onlinetimetop                |                    | オンライン時間ランキング  | bungeeplaytime.command.onlinetimetop  |        OPのみ        | /ottop, /ot top |
-| /afkplayers <sup>※1</sup>     |                    | AFKプレイヤー一覧    | bungeeplaytime.command.afkplayers     |                    |                 |
-| /bungeeplaytime <sup>※1</sup> |                    | 管理者用プラグインコマンド | bungeeplaytime.command.bungeeplaytime |                    | /bpt            |
-|                               | info [player/uuid] | プレイヤーの情報を表示   |                                       |                    |                 |
-|                               | reload             | 設定の再読み込み      |                                       |                    |
+
+| コマンド / 別名                                                        | サブコマンド                            | 権限                                    | 許可<sup>※1</sup> |
+|:-----------------------------------------------------------------|-----------------------------------|:--------------------------------------|:---------------:|
+| /playtime [player] <sub>`/pt`</sub><br>実行者のプレイ時間                 |                                   | bungeeplaytime.command.playtime       |       YES       |
+| /playtimetop <sub>`/pttop, /pt top`</sub><br>プレイ時間ランキング          |                                   | bungeeplaytime.command.playtimetop    |      OPのみ       |
+| /onlinetime [player] <sub>`/ot`</sub><br>実行者のオンライン時間             |                                   | bungeeplaytime.command.onlinetime     |       YES       |
+| /onlinetimetop <sub>`/ottop, /ot top`</sub><br>オンライン時間ランキング      |                                   | bungeeplaytime.command.onlinetimetop  |      OPのみ       |
+| /afkplayers <sup>※1</sup><br>AFKプレイヤー一覧                          |                                   | bungeeplaytime.command.afkplayers     |                 |
+| /bungeeplaytime <sup>※1</sup> <sub>`/bpt`</sub><br>管理者用プラグインコマンド | info [player/uuid]<br>プレイヤーの情報を表示 | bungeeplaytime.command.bungeeplaytime |                 |
+| 〃                                                                | reload<br>設定の再読み込み                | 〃                                     |                 |
 <sup>※1</sup> BungeeCordコマンドのみ
 
 ## 設定
